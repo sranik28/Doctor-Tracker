@@ -20,7 +20,7 @@ export function AppShellSkeleton() {
 
       <div className="md:pl-64">
         <div className="flex h-16 items-center justify-between border-b px-4 md:px-6">
-          <Skeleton className="size-9 md:hidden" />
+          <Skeleton className="size-9" />
           <Skeleton className="ml-auto size-9 rounded-full" />
         </div>
         <div className="grid gap-6 p-4 md:p-6">

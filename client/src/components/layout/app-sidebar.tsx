@@ -1,24 +1,89 @@
+'use client';
+
+import { ExternalLink, Stethoscope } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
-import { AppLogo } from '@/components/shared/app-logo';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+} from '@/components/ui/sidebar';
+import { isNavItemActive, NAV_ITEMS } from '@/lib/nav-items';
 
-import { SidebarNav } from './sidebar-nav';
-
-/** Fixed desktop sidebar; on mobile the same nav lives in MobileNav's drawer. */
+/** The shadcn Sidebar: collapses to an icon rail on desktop, becomes a drawer on mobile. */
 export function AppSidebar() {
+  const pathname = usePathname();
+
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r bg-sidebar text-sidebar-foreground md:flex">
-      <div className="flex h-16 shrink-0 items-center border-b px-6">
-        <Link
-          href="/dashboard"
-          className="rounded-md focus-visible:ring-2 focus-visible:outline-none"
-        >
-          <AppLogo />
-        </Link>
-      </div>
-      <div className="flex-1 overflow-y-auto p-4">
-        <SidebarNav />
-      </div>
-    </aside>
+    <Sidebar collapsible="icon">
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" asChild tooltip="Doctor Tracker">
+              <Link href="/dashboard">
+                <span
+                  className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
+                  aria-hidden="true"
+                >
+                  <Stethoscope className="size-4" />
+                </span>
+                <span className="grid flex-1 text-left text-sm leading-tight">
+                  <span className="truncate font-semibold">Doctor Tracker</span>
+                  <span className="truncate text-xs text-muted-foreground">Admin panel</span>
+                </span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Menu</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu aria-label="Main">
+              {NAV_ITEMS.map(({ title, href, icon: Icon }) => (
+                <SidebarMenuItem key={href}>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={title}
+                    isActive={isNavItemActive(pathname, href)}
+                  >
+                    <Link href={href}>
+                      <Icon aria-hidden="true" />
+                      <span>{title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Public site">
+              <Link href="/" target="_blank" rel="noopener">
+                <ExternalLink aria-hidden="true" />
+                <span>Public site</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+
+      <SidebarRail />
+    </Sidebar>
   );
 }
