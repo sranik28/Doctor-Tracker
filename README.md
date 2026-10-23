@@ -20,7 +20,7 @@ Hospital admins need to answer three questions quickly: _who are our doctors, wh
 
 ### Prerequisites
 
-- **Node.js 22+** and npm
+- **[Bun](https://bun.sh) 1.3+** (package manager and script runner) and **Node.js 22+** (Next.js and the production API image run on Node)
 - **MongoDB 8** running locally, or a free [Atlas](https://cloud.mongodb.com) cluster. The quickest local option is Docker:
 
   ```bash
@@ -32,7 +32,7 @@ Hospital admins need to answer three questions quickly: _who are our doctors, wh
 ```bash
 git clone https://github.com/sranik28/Doctor-Tracker.git
 cd Doctor-Tracker
-npm run install:all
+bun run install:all
 ```
 
 ### 2. Configure environment
@@ -56,20 +56,20 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 |                     | `CLIENT_URL`                                          | CORS origin                                       | `http://localhost:3000`                                 |
 |                     | `PORT`                                                | API port                                          | `5000`                                                  |
 |                     | `COOKIE_DOMAIN`, `TRUST_PROXY`                        | optional, see [DEPLOY.md](DEPLOY.md)              | empty, `1`                                              |
-|                     | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`             | the first admin account created by `npm run seed` | see below                                               |
+|                     | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`             | the first admin account created by `bun run seed` | see below                                               |
 | `client/.env.local` | `API_INTERNAL_URL`                                    | where Next.js proxies `/api/*`                    | `http://localhost:5000`                                 |
 
 ### 3. Seed the database
 
 ```bash
-npm run seed --prefix server        # creates indexes + the admin user (safe to re-run)
-npm run seed:demo --prefix server   # optional: ~30 doctors and ~1,500 patients for the dashboard
+bun run --cwd server seed        # creates indexes + the admin user (safe to re-run)
+bun run --cwd server seed:demo   # optional: ~30 doctors and ~1,500 patients for the dashboard
 ```
 
 ### 4. Run
 
 ```bash
-npm run dev
+bun run dev
 ```
 
 - App: <http://localhost:3000>
@@ -88,12 +88,12 @@ These come from `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` in `server/.env`; cha
 
 | Command (repo root)                       | What it does                                         |
 | ----------------------------------------- | ---------------------------------------------------- |
-| `npm run dev`                             | API and client together, with reload                 |
-| `npm run lint` · `npm run typecheck`      | ESLint and `tsc` for both apps                       |
-| `npm run format` · `npm run format:check` | Prettier                                             |
-| `npm run build`                           | production build of both apps                        |
-| `npm run explain --prefix server`         | prints MongoDB `explain()` plans for every key query |
-| `npm run analyze --prefix client`         | Next.js bundle analyzer                              |
+| `bun run dev`                             | API and client together, with reload                 |
+| `bun run lint` · `bun run typecheck`      | ESLint and `tsc` for both apps                       |
+| `bun run format` · `bun run format:check` | Prettier                                             |
+| `bun run build`                           | production build of both apps                        |
+| `bun run --cwd server explain`            | prints MongoDB `explain()` plans for every key query |
+| `bun run --cwd client analyze`            | Next.js bundle analyzer                              |
 
 Production: see [DEPLOY.md](DEPLOY.md) (Atlas + Docker API on Render/Railway/Coolify + client on Vercel).
 
@@ -325,7 +325,7 @@ Embedding only wins on "read one doctor with all patients", and that screen is p
 
 Indexes cost write speed and memory, so there are only as many as there are query shapes. Two sorts are intentionally **not** indexed: sorting _all_ patients by age or by record-created date (shown below as documented trade-offs). They are rare admin actions and each would add a write-amplifying index; `limit` keeps the response small and the in-memory sort is bounded by the collection size. Index them if usage shows they matter.
 
-**Proof: `npm run explain --prefix server`** (30 doctors, 1,500 patients, page size 10). The script exits non-zero if any key query uses a `COLLSCAN`. Result: **`OK: none of the 26 key queries use COLLSCAN.`** Plans read bottom-up (`IXSCAN` first). `PROJECTION_COVERED` means the query was answered from the index alone, with zero documents fetched.
+**Proof: `bun run --cwd server explain`** (30 doctors, 1,500 patients, page size 10). The script exits non-zero if any key query uses a `COLLSCAN`. Result: **`OK: none of the 26 key queries use COLLSCAN.`** Plans read bottom-up (`IXSCAN` first). `PROJECTION_COVERED` means the query was answered from the index alone, with zero documents fetched.
 
 #### Doctors
 
@@ -442,5 +442,5 @@ Screenshots live in [`docs/screenshots`](docs/screenshots). They are placeholder
 - **Keyset (cursor) pagination** for very deep patient lists; offset pagination is fine at this scale.
 - **Doctor edit/archive** flow (soft delete so history is preserved) and patient transfer between doctors in bulk.
 - **Observability**: structured logs, request IDs, metrics and error tracking.
-- **CI**: GitHub Actions running lint, typecheck, build and `npm run explain` against a Mongo service container.
+- **CI**: GitHub Actions running lint, typecheck, build and `bun run explain` against a Mongo service container.
 - **Internationalisation** and a printable/CSV export of patient lists.

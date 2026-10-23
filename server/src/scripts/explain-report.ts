@@ -25,9 +25,9 @@ import {
 } from '../services/patient.service.js';
 
 /**
- * `npm run explain`: runs explain("executionStats") for the API's key queries and prints a
+ * `bun run explain`: runs explain("executionStats") for the API's key queries and prints a
  * summary table. Exits non-zero if any KEY query falls back to a collection scan.
- * Run it against realistic data (`npm run seed:demo`); on an empty database every plan looks fine.
+ * Run it against realistic data (`bun run seed:demo`); on an empty database every plan looks fine.
  */
 
 const PAGE_SIZE = 10;

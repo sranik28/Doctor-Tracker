@@ -1,20 +1,21 @@
 # syntax=docker/dockerfile:1
 
 # ---- Stage 1: all dependencies + compile TypeScript ----------------------------------------
-FROM node:22-slim AS build
+FROM oven/bun:1-slim AS build
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+# bun.lock is optional: it is git-ignored in this repo, so a clean clone won't have one.
+COPY package.json bun.lock* ./
+RUN bun install
 COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
-RUN npm run build
+RUN bun run build
 
 # ---- Stage 2: production dependencies only --------------------------------------------------
-FROM node:22-slim AS prod-deps
+FROM oven/bun:1-slim AS prod-deps
 WORKDIR /app
-COPY package.json package-lock.json ./
+COPY package.json bun.lock* ./
 # bcrypt ships prebuilt binaries for glibc (this image), so no compiler is needed.
-RUN npm ci --omit=dev && npm cache clean --force
+RUN bun install --production
 
 # ---- Stage 3: small runtime image -----------------------------------------------------------
 FROM node:22-slim AS runtime
@@ -34,5 +35,5 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+process.env.PORT+'/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-# `node` directly (not `npm start`) so SIGTERM reaches the process and graceful shutdown runs.
+# `node` directly (not a package-manager script) so SIGTERM reaches the process and graceful shutdown runs.
 CMD ["node", "dist/server.js"]

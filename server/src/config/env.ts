@@ -30,7 +30,7 @@ const envSchema = z
       (value) => (value === '' ? undefined : value),
       z.coerce.number().int().min(0).default(1),
     ),
-    // Only needed by `npm run seed`; the API server runs without them.
+    // Only needed by `bun run seed`; the API server runs without them.
     SEED_ADMIN_EMAIL: optionalString(z.email()),
     SEED_ADMIN_PASSWORD: optionalString(z.string().min(8, 'must be at least 8 characters')),
   })

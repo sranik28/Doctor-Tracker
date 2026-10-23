@@ -123,12 +123,12 @@ Atlas (your IP must be allowed in Atlas _Network Access_, or temporarily use `0.
 cd server
 cp .env.example .env
 # edit .env: set MONGODB_URI to the Atlas string, and a REAL SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD
-npm install
-npm run seed            # creates indexes + the admin user (safe to re-run)
-npm run seed:demo       # optional: ~30 doctors and ~1,500 patients of demo data
+bun install
+bun run seed            # creates indexes + the admin user (safe to re-run)
+bun run seed:demo       # optional: ~30 doctors and ~1,500 patients of demo data
 ```
 
-Re-running `npm run seed:demo` does nothing if demo data exists; `npm run seed:demo -- --reset`
+Re-running `bun run seed:demo` does nothing if demo data exists; `bun run seed:demo -- --reset`
 replaces only the demo records (doctors on `@demo.doctortracker.dev` and their patients), never
 real ones. **Don't leave a default password on a public deployment**: use a strong
 `SEED_ADMIN_PASSWORD`.
@@ -136,7 +136,7 @@ real ones. **Don't leave a default password on a public deployment**: use a stro
 To check the query plans on the production data:
 
 ```bash
-npm run explain
+bun run explain
 ```
 
 ---
