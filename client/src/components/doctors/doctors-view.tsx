@@ -12,7 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDoctors } from '@/hooks/use-doctors';
 import { useUrlFilters } from '@/hooks/use-url-filters';
-import { doctorListFiltersSchema, PAGE_SIZE_OPTIONS } from '@/schemas/doctor.schema';
+import { PAGE_SIZE_OPTIONS } from '@/schemas/common.schema';
+import { doctorListFiltersSchema } from '@/schemas/doctor.schema';
 
 import { CreateDoctorDialog } from './create-doctor-dialog';
 import { DoctorFilters } from './doctor-filters';

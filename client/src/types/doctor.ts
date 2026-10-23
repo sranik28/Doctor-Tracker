@@ -13,6 +13,9 @@ export interface DoctorListItem extends Doctor {
   patientCount: number;
 }
 
+/** GET /doctors/:id returns the same shape as a list item. */
+export type DoctorDetail = DoctorListItem;
+
 export interface DoctorFilterOptions {
   specializations: string[];
   hospitals: string[];
