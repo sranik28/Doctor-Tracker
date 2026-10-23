@@ -3,7 +3,7 @@ import { env } from '../config/env.js';
 import { DoctorModel } from '../models/doctor.model.js';
 import { PatientModel } from '../models/patient.model.js';
 import { UserModel } from '../models/user.model.js';
-import { hashPassword } from '../utils/password.js';
+import { hashPassword, verifyPassword } from '../utils/password.js';
 
 const ADMIN_NAME = 'Admin';
 
@@ -17,21 +17,35 @@ const syncIndexes = async (): Promise<void> => {
   console.info('[seed] Indexes synced for users, doctors, patients');
 };
 
+/**
+ * server/.env is the source of truth for the admin login: creates the account, or, when the
+ * email already exists, makes sure its password matches SEED_ADMIN_PASSWORD. Changing the
+ * password signs the account out everywhere.
+ */
 const seedAdmin = async (email: string, password: string): Promise<void> => {
   const normalizedEmail = email.trim().toLowerCase();
+  const existing = await UserModel.findOne({ email: normalizedEmail }).select('+password');
 
-  if (await UserModel.exists({ email: normalizedEmail })) {
-    console.info(`[seed] Admin ${normalizedEmail} already exists, skipping`);
+  if (!existing) {
+    await UserModel.create({
+      name: ADMIN_NAME,
+      email: normalizedEmail,
+      password: await hashPassword(password),
+      role: 'admin',
+    });
+    console.info(`[seed] Admin ${normalizedEmail} created`);
     return;
   }
 
-  await UserModel.create({
-    name: ADMIN_NAME,
-    email: normalizedEmail,
-    password: await hashPassword(password),
-    role: 'admin',
-  });
-  console.info(`[seed] Admin ${normalizedEmail} created`);
+  if (await verifyPassword(password, existing.password)) {
+    console.info(`[seed] Admin ${normalizedEmail} is already up to date`);
+    return;
+  }
+
+  existing.password = await hashPassword(password);
+  existing.refreshTokenHash = null;
+  await existing.save();
+  console.info(`[seed] Admin ${normalizedEmail} updated to match SEED_ADMIN_PASSWORD`);
 };
 
 const run = async (): Promise<void> => {

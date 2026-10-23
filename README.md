@@ -84,7 +84,7 @@ bun run dev
 | Email    | `admin@doctortracker.dev`   |
 | Password | `change-me-strong-password` |
 
-These come from `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` in `server/.env`; change them before seeding anything that is reachable from the internet.
+These come from `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` in `server/.env`, and `bun run --cwd server seed` keeps that account in sync with them (change the password in `.env`, re-run the seed); change them before seeding anything that is reachable from the internet.
 
 ### Useful commands
 

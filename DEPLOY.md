@@ -124,7 +124,7 @@ cd server
 cp .env.example .env
 # edit .env: set MONGODB_URI to the Atlas string, and a REAL SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD
 bun install
-bun run seed            # creates indexes + the admin user (safe to re-run)
+bun run seed            # creates indexes + the admin user; re-run to apply a changed password
 bun run seed:demo       # optional: ~30 doctors and ~1,500 patients of demo data
 ```
 
