@@ -19,7 +19,7 @@ interface PatientFiltersProps {
 
 export function PatientFilters({ filters, onChange }: PatientFiltersProps) {
   const { data: conditionOptions, isLoading: isLoadingConditions } = usePatientFilterOptions();
-  const { data: doctors, isLoading: isLoadingDoctors } = useDoctorOptions();
+  const { data: doctors, isLoading: isLoadingDoctors } = useDoctorOptions(true);
 
   // A doctor from a shared link may be outside the first 50 options: fetch it for its name.
   const selectedDoctorMissing =

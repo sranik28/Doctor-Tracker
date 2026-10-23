@@ -24,7 +24,6 @@ import { DoctorsTable } from './doctors-table';
 const CLEARED_FILTERS = {
   search: undefined,
   specialization: undefined,
-  hospital: undefined,
   from: undefined,
   to: undefined,
 };
@@ -36,11 +35,9 @@ export function DoctorsView() {
   const [isCreateOpen, setCreateOpen] = useState(false);
   const { searchKey, searchDefaultValue, resetSearch } = useSearchSeed(filters.search);
 
-  const activeFilterCount = [
-    filters.specialization,
-    filters.hospital,
-    filters.from ?? filters.to,
-  ].filter(Boolean).length;
+  const activeFilterCount = [filters.specialization, filters.from ?? filters.to].filter(
+    Boolean,
+  ).length;
   const hasActiveFilters = activeFilterCount > 0 || Boolean(filters.search);
 
   const handleSearch = useCallback(

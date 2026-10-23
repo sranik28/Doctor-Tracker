@@ -2,6 +2,7 @@
 
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
+import { useSelectedHospital } from '@/hooks/use-selected-hospital';
 import { api } from '@/lib/api';
 import { dashboardKeys } from '@/lib/query-keys';
 import type { ApiSuccessResponse } from '@/types/api';
@@ -23,46 +24,58 @@ const getData = async <T>(path: string, params?: Record<string, unknown>): Promi
   return data.data;
 };
 
-export const useDashboardStats = () =>
-  useQuery({
-    queryKey: dashboardKeys.stats(),
-    queryFn: () => getData<DashboardStats>('stats'),
+export const useDashboardStats = () => {
+  const { hospital } = useSelectedHospital();
+  return useQuery({
+    queryKey: dashboardKeys.stats(hospital),
+    queryFn: () => getData<DashboardStats>('stats', { hospital }),
     staleTime: DASHBOARD_STALE_TIME,
   });
+};
 
-export const usePatientsOverTime = (range: TimelineRange) =>
-  useQuery({
-    queryKey: dashboardKeys.timeline(range),
-    queryFn: () => getData<TimelinePoint[]>('timeline', { range }),
+export const usePatientsOverTime = (range: TimelineRange) => {
+  const { hospital } = useSelectedHospital();
+  return useQuery({
+    queryKey: dashboardKeys.timeline(range, hospital),
+    queryFn: () => getData<TimelinePoint[]>('timeline', { range, hospital }),
     staleTime: DASHBOARD_STALE_TIME,
     // Keep the previous range on screen while the next one loads: no flash on toggle.
     placeholderData: keepPreviousData,
   });
+};
 
-export const usePatientsPerDoctor = (limit = 10) =>
-  useQuery({
-    queryKey: dashboardKeys.patientsPerDoctor(limit),
-    queryFn: () => getData<DoctorPatientCount[]>('patients-per-doctor', { limit }),
+export const usePatientsPerDoctor = (limit = 10) => {
+  const { hospital } = useSelectedHospital();
+  return useQuery({
+    queryKey: dashboardKeys.patientsPerDoctor(limit, hospital),
+    queryFn: () => getData<DoctorPatientCount[]>('patients-per-doctor', { limit, hospital }),
     staleTime: DASHBOARD_STALE_TIME,
   });
+};
 
-export const useConditionBreakdown = () =>
-  useQuery({
-    queryKey: dashboardKeys.conditions(),
-    queryFn: () => getData<ConditionCount[]>('conditions'),
+export const useConditionBreakdown = () => {
+  const { hospital } = useSelectedHospital();
+  return useQuery({
+    queryKey: dashboardKeys.conditions(hospital),
+    queryFn: () => getData<ConditionCount[]>('conditions', { hospital }),
     staleTime: DASHBOARD_STALE_TIME,
   });
+};
 
-export const useSpecializationBreakdown = () =>
-  useQuery({
-    queryKey: dashboardKeys.specializations(),
-    queryFn: () => getData<SpecializationCount[]>('specializations'),
+export const useSpecializationBreakdown = () => {
+  const { hospital } = useSelectedHospital();
+  return useQuery({
+    queryKey: dashboardKeys.specializations(hospital),
+    queryFn: () => getData<SpecializationCount[]>('specializations', { hospital }),
     staleTime: DASHBOARD_STALE_TIME,
   });
+};
 
-export const useRecentPatients = (limit = 5) =>
-  useQuery({
-    queryKey: dashboardKeys.recentPatients(limit),
-    queryFn: () => getData<Patient[]>('recent-patients', { limit }),
+export const useRecentPatients = (limit = 5) => {
+  const { hospital } = useSelectedHospital();
+  return useQuery({
+    queryKey: dashboardKeys.recentPatients(limit, hospital),
+    queryFn: () => getData<Patient[]>('recent-patients', { limit, hospital }),
     staleTime: DASHBOARD_STALE_TIME,
   });
+};

@@ -19,6 +19,7 @@ import {
   DOCTOR_PROJECTION,
   DOCTOR_SORT_STAGES,
 } from '../services/doctor.service.js';
+import { getHospitalDoctorIds } from '../services/hospital-scope.service.js';
 import {
   PUBLIC_DOCTOR_PROJECTION,
   PUBLIC_DOCTOR_SORT_STAGES,
@@ -323,6 +324,56 @@ const run = async (): Promise<void> => {
       }),
     ];
 
+    // The hospital switcher: patients are scoped through that hospital's doctor ids.
+    const hospital = 'Square Hospital';
+    const hospitalDoctorIds = await getHospitalDoctorIds(hospital);
+    const scopedPatients = buildPatientFilter(
+      { from: undefined, to: undefined },
+      hospitalDoctorIds,
+    );
+    const hospitalRows: Row[] = [
+      await explainFind(
+        `hospital: patients list (${hospital})`,
+        PatientModel,
+        scopedPatients,
+        PATIENT_PROJECTION,
+        PATIENT_SORT_STAGES['-admittedAt'],
+      ),
+      await explainCount('hospital: patients count', PatientModel, scopedPatients),
+      await explainPipeline(
+        'hospital: dashboard stats',
+        PatientModel,
+        buildStatsPipeline(now, hospitalDoctorIds),
+      ),
+      await explainPipeline(
+        'hospital: timeline 30d',
+        PatientModel,
+        buildTimelinePipeline('30d', now, hospitalDoctorIds),
+      ),
+      await explainPipeline(
+        'hospital: patients per doctor',
+        PatientModel,
+        buildPatientsPerDoctorPipeline(10, hospitalDoctorIds),
+      ),
+      await explainPipeline(
+        'hospital: conditions',
+        PatientModel,
+        buildConditionsPipeline(hospitalDoctorIds),
+      ),
+      await explainPipeline(
+        'hospital: specializations',
+        DoctorModel,
+        buildSpecializationsPipeline(hospital),
+      ),
+      await explainFind(
+        'hospital: recent patients',
+        PatientModel,
+        scopedPatients,
+        PATIENT_PROJECTION,
+        { admittedAt: -1 },
+      ),
+    ];
+
     // Deliberately unindexed: each would cost write speed on every insert for a rarely-used sort.
     const tradeoffRows: Row[] = [
       await patientFind('patients: sort by age (no index)', {}, 'age'),
@@ -333,11 +384,16 @@ const run = async (): Promise<void> => {
     printTable('Public directory', publicRows);
     printTable('Patients', patientRows);
     printTable('Dashboard', dashboardRows);
+    printTable('Hospital switcher (scoped to one hospital)', hospitalRows);
     printTable('Documented trade-offs (intentionally not indexed)', tradeoffRows);
 
-    const failures = [...doctorRows, ...publicRows, ...patientRows, ...dashboardRows].filter(
-      (row) => row.collscan,
-    );
+    const failures = [
+      ...doctorRows,
+      ...publicRows,
+      ...patientRows,
+      ...dashboardRows,
+      ...hospitalRows,
+    ].filter((row) => row.collscan);
     console.log('');
     if (failures.length > 0) {
       console.error(
@@ -349,7 +405,7 @@ const run = async (): Promise<void> => {
       process.exitCode = 1;
     } else {
       console.log(
-        `OK: none of the ${doctorRows.length + publicRows.length + patientRows.length + dashboardRows.length} key queries use COLLSCAN.`,
+        `OK: none of the ${doctorRows.length + publicRows.length + patientRows.length + dashboardRows.length + hospitalRows.length} key queries use COLLSCAN.`,
       );
     }
   } finally {

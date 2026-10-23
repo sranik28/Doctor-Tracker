@@ -69,6 +69,8 @@ export const listPatientsQuerySchema = z
     search: optionalQueryString(100),
     condition: optionalQueryString(150),
     doctorId: optionalQueryParam(objectIdSchema),
+    // Limits results to the patients of one hospital's doctors.
+    hospital: optionalQueryString(150),
     gender: optionalQueryParam(
       z.enum(PATIENT_GENDERS, { error: 'gender must be male, female or other' }),
     ),

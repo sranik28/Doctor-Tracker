@@ -27,14 +27,6 @@ export function DoctorFilters({ filters, onChange }: DoctorFiltersProps) {
         isLoading={isLoading}
         onChange={(specialization) => onChange({ specialization })}
       />
-      <FilterSelect
-        label="Hospital"
-        allLabel="All hospitals"
-        value={filters.hospital}
-        options={toFilterOptions(options?.hospitals ?? [])}
-        isLoading={isLoading}
-        onChange={(hospital) => onChange({ hospital })}
-      />
       <DateRangePicker
         value={{ from: filters.from, to: filters.to }}
         onChange={({ from, to }) => onChange({ from, to })}

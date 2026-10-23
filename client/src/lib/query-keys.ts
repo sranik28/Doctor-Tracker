@@ -7,9 +7,10 @@ import type { PatientListFilters, PatientsPageFilters } from '@/schemas/patient.
 export const doctorKeys = {
   all: ['doctors'] as const,
   lists: () => [...doctorKeys.all, 'list'] as const,
-  list: (filters: DoctorListFilters) => [...doctorKeys.lists(), filters] as const,
+  list: (filters: DoctorListFilters, hospital: string | undefined) =>
+    [...doctorKeys.lists(), hospital, filters] as const,
   filterOptions: () => [...doctorKeys.all, 'filter-options'] as const,
-  options: () => [...doctorKeys.all, 'options'] as const,
+  options: (hospital: string | undefined) => [...doctorKeys.all, 'options', hospital] as const,
   details: () => [...doctorKeys.all, 'detail'] as const,
   detail: (id: string) => [...doctorKeys.details(), id] as const,
   patients: (id: string) => [...doctorKeys.detail(id), 'patients'] as const,
@@ -28,17 +29,22 @@ export const publicDoctorKeys = {
 export const patientKeys = {
   all: ['patients'] as const,
   lists: () => [...patientKeys.all, 'list'] as const,
-  list: (filters: PatientsPageFilters) => [...patientKeys.lists(), filters] as const,
+  list: (filters: PatientsPageFilters, hospital: string | undefined) =>
+    [...patientKeys.lists(), hospital, filters] as const,
   filterOptions: () => [...patientKeys.all, 'filter-options'] as const,
 };
 
 export const dashboardKeys = {
   all: ['dashboard'] as const,
-  stats: () => [...dashboardKeys.all, 'stats'] as const,
-  timeline: (range: TimelineRange) => [...dashboardKeys.all, 'timeline', range] as const,
-  patientsPerDoctor: (limit: number) =>
-    [...dashboardKeys.all, 'patients-per-doctor', limit] as const,
-  conditions: () => [...dashboardKeys.all, 'conditions'] as const,
-  specializations: () => [...dashboardKeys.all, 'specializations'] as const,
-  recentPatients: (limit: number) => [...dashboardKeys.all, 'recent-patients', limit] as const,
+  stats: (hospital: string | undefined) => [...dashboardKeys.all, 'stats', hospital] as const,
+  timeline: (range: TimelineRange, hospital: string | undefined) =>
+    [...dashboardKeys.all, 'timeline', hospital, range] as const,
+  patientsPerDoctor: (limit: number, hospital: string | undefined) =>
+    [...dashboardKeys.all, 'patients-per-doctor', hospital, limit] as const,
+  conditions: (hospital: string | undefined) =>
+    [...dashboardKeys.all, 'conditions', hospital] as const,
+  specializations: (hospital: string | undefined) =>
+    [...dashboardKeys.all, 'specializations', hospital] as const,
+  recentPatients: (limit: number, hospital: string | undefined) =>
+    [...dashboardKeys.all, 'recent-patients', hospital, limit] as const,
 };

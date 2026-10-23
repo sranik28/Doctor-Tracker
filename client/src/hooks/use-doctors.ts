@@ -2,6 +2,7 @@
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { useSelectedHospital } from '@/hooks/use-selected-hospital';
 import { api } from '@/lib/api';
 import { toApiDateRange } from '@/lib/dates';
 import { doctorKeys } from '@/lib/query-keys';
@@ -16,22 +17,25 @@ const toApiParams = ({ from, to, ...rest }: DoctorListFilters) => ({
 
 const fetchDoctors = async (
   filters: DoctorListFilters,
+  hospital: string | undefined,
   signal: AbortSignal,
 ): Promise<PaginatedResult<DoctorListItem>> => {
   const { data } = await api.get<ApiPaginatedResponse<DoctorListItem>>('/doctors', {
-    params: toApiParams(filters),
+    params: { ...toApiParams(filters), hospital },
     signal,
   });
   return { items: data.data, meta: data.meta };
 };
 
-export const useDoctors = (filters: DoctorListFilters) =>
-  useQuery({
-    queryKey: doctorKeys.list(filters),
-    queryFn: ({ signal }) => fetchDoctors(filters, signal),
+export const useDoctors = (filters: DoctorListFilters) => {
+  const { hospital } = useSelectedHospital();
+  return useQuery({
+    queryKey: doctorKeys.list(filters, hospital),
+    queryFn: ({ signal }) => fetchDoctors(filters, hospital, signal),
     // Keep the current rows on screen while the next page/filter loads: no flicker.
     placeholderData: keepPreviousData,
   });
+};
 
 export const useDoctorFilterOptions = () =>
   useQuery({
@@ -45,19 +49,27 @@ export const useDoctorFilterOptions = () =>
     staleTime: 5 * 60 * 1000,
   });
 
-/** id + name of doctors for dropdowns (patients filter, reassign). First 50 by name. */
-export const useDoctorOptions = () =>
-  useQuery({
-    queryKey: doctorKeys.options(),
+/**
+ * id + name of doctors for dropdowns. First 50 by name. A filter dropdown passes
+ * `scopeToHospital` to list only the selected hospital's doctors; a reassign dropdown doesn't,
+ * because a patient can be moved to any hospital's doctor.
+ */
+export const useDoctorOptions = (scopeToHospital = false) => {
+  const { hospital: selected } = useSelectedHospital();
+  const hospital = scopeToHospital ? selected : undefined;
+
+  return useQuery({
+    queryKey: doctorKeys.options(hospital),
     queryFn: async ({ signal }) => {
       const { data } = await api.get<ApiPaginatedResponse<DoctorListItem>>('/doctors', {
-        params: { limit: 50, sort: 'name' },
+        params: { limit: 50, sort: 'name', hospital },
         signal,
       });
       return data.data.map(({ _id, name, specialization }) => ({ _id, name, specialization }));
     },
     staleTime: 5 * 60 * 1000,
   });
+};
 
 export const useCreateDoctor = () => {
   const queryClient = useQueryClient();

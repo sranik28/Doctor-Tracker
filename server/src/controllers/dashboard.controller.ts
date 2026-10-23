@@ -5,11 +5,13 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import {
   patientsPerDoctorQuerySchema,
   recentPatientsQuerySchema,
+  scopeQuerySchema,
   timelineQuerySchema,
 } from '../validations/dashboard.validation.js';
 
-export const getStats = asyncHandler(async (_req, res) => {
-  sendSuccess(res, await dashboardService.getDashboardStats());
+export const getStats = asyncHandler(async (req, res) => {
+  const { hospital } = validated(scopeQuerySchema, req.query);
+  sendSuccess(res, await dashboardService.getDashboardStats(hospital));
 });
 
 export const getPatientsPerDoctor = asyncHandler(async (req, res) => {
@@ -22,12 +24,14 @@ export const getTimeline = asyncHandler(async (req, res) => {
   sendSuccess(res, await dashboardService.getTimeline(query));
 });
 
-export const getConditions = asyncHandler(async (_req, res) => {
-  sendSuccess(res, await dashboardService.getConditionBreakdown());
+export const getConditions = asyncHandler(async (req, res) => {
+  const { hospital } = validated(scopeQuerySchema, req.query);
+  sendSuccess(res, await dashboardService.getConditionBreakdown(hospital));
 });
 
-export const getSpecializations = asyncHandler(async (_req, res) => {
-  sendSuccess(res, await dashboardService.getSpecializationBreakdown());
+export const getSpecializations = asyncHandler(async (req, res) => {
+  const { hospital } = validated(scopeQuerySchema, req.query);
+  sendSuccess(res, await dashboardService.getSpecializationBreakdown(hospital));
 });
 
 export const getRecentPatients = asyncHandler(async (req, res) => {

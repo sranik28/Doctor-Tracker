@@ -1,6 +1,6 @@
 'use client';
 
-import { ExternalLink, Stethoscope } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -19,6 +19,8 @@ import {
 } from '@/components/ui/sidebar';
 import { isNavItemActive, NAV_ITEMS } from '@/lib/nav-items';
 
+import { HospitalSwitcher } from './hospital-switcher';
+
 /** The shadcn Sidebar: collapses to an icon rail on desktop, becomes a drawer on mobile. */
 export function AppSidebar() {
   const pathname = usePathname();
@@ -26,24 +28,7 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild tooltip="Doctor Tracker">
-              <Link href="/dashboard">
-                <span
-                  className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
-                  aria-hidden="true"
-                >
-                  <Stethoscope className="size-4" />
-                </span>
-                <span className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">Doctor Tracker</span>
-                  <span className="truncate text-xs text-muted-foreground">Admin panel</span>
-                </span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <HospitalSwitcher />
       </SidebarHeader>
 
       <SidebarContent>

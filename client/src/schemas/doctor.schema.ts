@@ -45,7 +45,6 @@ export const doctorListFiltersSchema = z
     limit: limitParam,
     search: optionalParam(100),
     specialization: optionalParam(100),
-    hospital: optionalParam(150),
     from: optionalDateParam,
     to: optionalDateParam,
     sort: z.enum(SORT_VALUES).catch('-createdAt'),

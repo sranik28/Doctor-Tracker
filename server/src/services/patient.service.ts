@@ -14,6 +14,7 @@ import type {
   UpdatePatientInput,
 } from '../validations/patient.validation.js';
 import { assertDoctorExists } from './doctor.service.js';
+import { getHospitalDoctorIds, patientScopeMatch } from './hospital-scope.service.js';
 
 type PatientFields = Pick<
   Patient,
@@ -140,23 +141,33 @@ export const PATIENT_SORT_STAGES: Record<PatientSort, Record<string, 1 | -1>> = 
  * Equality filters (condition / doctorId) + admittedAt range/sort line up with the
  * { condition, admittedAt } and { doctorId, admittedAt } compound indexes.
  */
-export const buildPatientFilter = ({
-  search,
-  condition,
-  doctorId,
-  gender,
-  from,
-  to,
-}: Pick<
-  ListPatientsQuery,
-  'search' | 'condition' | 'doctorId' | 'gender' | 'from' | 'to'
->): QueryFilter<Patient> => {
+/**
+ * `hospitalDoctorIds` are the doctors of the selected hospital (see hospital-scope.service);
+ * `undefined` means all hospitals.
+ */
+export const buildPatientFilter = (
+  {
+    search,
+    condition,
+    doctorId,
+    gender,
+    from,
+    to,
+  }: Pick<ListPatientsQuery, 'search' | 'condition' | 'doctorId' | 'gender' | 'from' | 'to'>,
+  hospitalDoctorIds?: Types.ObjectId[],
+): QueryFilter<Patient> => {
   const filter: QueryFilter<Patient> = {};
   const textSearch = toTextSearch(search);
 
   if (textSearch) filter.$text = { $search: textSearch };
   if (condition) filter.condition = condition;
-  if (doctorId) filter.doctorId = doctorId;
+  if (hospitalDoctorIds) {
+    // A doctor chosen outside the hospital matches nothing, rather than ignoring the hospital.
+    const inHospital = doctorId && hospitalDoctorIds.some((id) => id.toString() === doctorId);
+    filter.doctorId = doctorId ? (inHospital ? doctorId : { $in: [] }) : { $in: hospitalDoctorIds };
+  } else if (doctorId) {
+    filter.doctorId = doctorId;
+  }
   if (gender) filter.gender = gender;
   if (from || to) {
     filter.admittedAt = { ...(from && { $gte: from }), ...(to && { $lte: to }) };
@@ -168,7 +179,7 @@ export const buildPatientFilter = ({
 export const listPatients = async (
   query: ListPatientsQuery,
 ): Promise<{ patients: PatientWithDoctor[]; meta: PaginationMeta }> => {
-  const filter = buildPatientFilter(query);
+  const filter = buildPatientFilter(query, await getHospitalDoctorIds(query.hospital));
 
   const [patients, total] = await Promise.all([
     PatientModel.find(filter, PATIENT_PROJECTION)
@@ -242,8 +253,11 @@ export const deletePatient = async (patientId: string): Promise<{ _id: Types.Obj
 };
 
 /** Latest admissions with their doctor's name; one page query plus one batched doctor lookup. */
-export const listRecentPatients = (limit: number): Promise<PatientWithDoctor[]> =>
-  PatientModel.find({}, PATIENT_PROJECTION)
+export const listRecentPatients = (
+  limit: number,
+  hospitalDoctorIds?: Types.ObjectId[],
+): Promise<PatientWithDoctor[]> =>
+  PatientModel.find(patientScopeMatch(hospitalDoctorIds), PATIENT_PROJECTION)
     .sort({ admittedAt: -1 })
     .limit(limit)
     .populate(DOCTOR_POPULATE)

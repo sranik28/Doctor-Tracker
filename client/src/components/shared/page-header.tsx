@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 
+import { HospitalScopeBadge } from './hospital-scope-badge';
+
 interface PageHeaderProps {
   title: string;
   description?: string;
@@ -10,7 +12,10 @@ export function PageHeader({ title, description, actions }: PageHeaderProps) {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="grid gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+          <HospitalScopeBadge />
+        </div>
         {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </div>
       {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}

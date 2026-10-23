@@ -2,6 +2,7 @@
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { useSelectedHospital } from '@/hooks/use-selected-hospital';
 import { api } from '@/lib/api';
 import { toApiDateRange, toLocalNoonIso } from '@/lib/dates';
 import {
@@ -15,13 +16,14 @@ import type { EditPatientValues, PatientsPageFilters } from '@/schemas/patient.s
 import type { ApiPaginatedResponse, ApiSuccessResponse, PaginatedResult } from '@/types/api';
 import type { Patient } from '@/types/patient';
 
-export const usePatients = (filters: PatientsPageFilters) =>
-  useQuery({
-    queryKey: patientKeys.list(filters),
+export const usePatients = (filters: PatientsPageFilters) => {
+  const { hospital } = useSelectedHospital();
+  return useQuery({
+    queryKey: patientKeys.list(filters, hospital),
     queryFn: async ({ signal }): Promise<PaginatedResult<Patient>> => {
       const { from, to, ...rest } = filters;
       const { data } = await api.get<ApiPaginatedResponse<Patient>>('/patients', {
-        params: { ...rest, ...toApiDateRange(from, to) },
+        params: { ...rest, hospital, ...toApiDateRange(from, to) },
         signal,
       });
       return { items: data.data, meta: data.meta };
@@ -29,6 +31,7 @@ export const usePatients = (filters: PatientsPageFilters) =>
     // Keep the current rows on screen while the next page/filter loads: no flicker.
     placeholderData: keepPreviousData,
   });
+};
 
 export const usePatientFilterOptions = () =>
   useQuery({
