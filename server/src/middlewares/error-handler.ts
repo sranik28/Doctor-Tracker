@@ -16,8 +16,32 @@ const hasStatus = (error: unknown): error is { status: number; type?: string } =
 const toErrorCode = (type: string | undefined): string =>
   type ? type.replace(/[^a-z0-9]+/gi, '_').toUpperCase() : 'BAD_REQUEST';
 
+const DUPLICATE_KEY_CODE = 11000;
+
+/** Maps Mongo E11000 to a 409 that names the conflicting field. */
+const fromDuplicateKeyError = (error: InstanceType<typeof mongoose.mongo.MongoServerError>) => {
+  const keyPattern: unknown = error.keyPattern;
+  const field =
+    typeof keyPattern === 'object' && keyPattern !== null ? Object.keys(keyPattern)[0] : undefined;
+
+  if (field === 'email') {
+    return new ApiError(409, 'DUPLICATE_EMAIL', 'This email is already in use', { field });
+  }
+
+  return new ApiError(
+    409,
+    'DUPLICATE_KEY',
+    'A record with this value already exists',
+    field ? { field } : undefined,
+  );
+};
+
 const normalizeError = (error: unknown): ApiError => {
   if (error instanceof ApiError) return error;
+
+  if (error instanceof mongoose.mongo.MongoServerError && error.code === DUPLICATE_KEY_CODE) {
+    return fromDuplicateKeyError(error);
+  }
 
   if (error instanceof ZodError) {
     return ApiError.validation(error.issues.map(({ path, message }) => ({ path, message })));

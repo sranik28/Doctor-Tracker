@@ -1,5 +1,5 @@
 import type { RequestHandler } from 'express';
-import type { ZodType } from 'zod';
+import type { output as ZodOutput, ZodType } from 'zod';
 
 import { ApiError } from '../utils/ApiError.js';
 
@@ -51,3 +51,10 @@ export const validate =
 
     next(issues.length > 0 ? ApiError.validation(issues) : undefined);
   };
+
+/**
+ * Typed view of a request part that `validate` already parsed with the same schema,
+ * e.g. `validated(listDoctorsQuerySchema, req.query)`. Express types req.query as raw strings.
+ */
+export const validated = <S extends ZodType>(_schema: S, value: unknown): ZodOutput<S> =>
+  value as ZodOutput<S>;

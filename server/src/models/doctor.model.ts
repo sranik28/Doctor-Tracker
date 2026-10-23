@@ -28,8 +28,12 @@ const doctorSchema = new Schema<Doctor>(
 doctorSchema.index({ email: 1 }, { unique: true });
 // Filter by specialization, newest first (list page + stats).
 doctorSchema.index({ specialization: 1, createdAt: -1 });
-// Default list sort.
+// Default list sort and date-range filter.
 doctorSchema.index({ createdAt: -1 });
+// Sort by name (A-Z / Z-A).
+doctorSchema.index({ name: 1 });
+// Filter by hospital, newest first; also serves distinct('hospital') for filter options.
+doctorSchema.index({ hospital: 1, createdAt: -1 });
 // Search box: name weighs more than hospital.
 doctorSchema.index(
   { name: 'text', hospital: 'text' },
