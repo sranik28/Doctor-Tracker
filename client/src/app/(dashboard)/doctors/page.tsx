@@ -6,8 +6,8 @@ export const metadata: Metadata = {
 
 export default function DoctorsPage() {
   return (
-    <main className="p-6">
+    <section>
       <h1 className="text-2xl font-semibold tracking-tight">Doctors</h1>
-    </main>
+    </section>
   );
 }
