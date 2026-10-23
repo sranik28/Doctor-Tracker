@@ -22,6 +22,11 @@ const envSchema = z.object({
   REFRESH_TOKEN_EXPIRES_IN: durationSchema,
   CLIENT_URL: z.url(),
   COOKIE_DOMAIN: optionalString(z.string()),
+  // Number of reverse proxies in front of Express whose X-Forwarded-For entry we trust.
+  TRUST_PROXY: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.coerce.number().int().min(0).default(1),
+  ),
   // Only needed by `npm run seed`; the API server runs without them.
   SEED_ADMIN_EMAIL: optionalString(z.email()),
   SEED_ADMIN_PASSWORD: optionalString(z.string().min(8, 'must be at least 8 characters')),
