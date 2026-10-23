@@ -1,38 +1,75 @@
 'use client';
 
 import { format, parseISO } from 'date-fns';
-import { Phone, Trash2 } from 'lucide-react';
+import { Pencil, Phone, Stethoscope, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 import { type ReactNode, useCallback, useMemo } from 'react';
 
 import { DataTable, type DataTableColumn } from '@/components/shared/data-table';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { Patient } from '@/types/patient';
+
+import { ConditionBadge } from './condition-badge';
 
 const formatDate = (iso: string) => format(parseISO(iso), 'd MMM yyyy');
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 const getPatientId = (patient: Patient) => patient._id;
 
-interface DeleteButtonProps {
+type PatientAction = (patient: Patient) => void;
+
+interface RowActionsProps {
   patient: Patient;
-  onDelete: (patient: Patient) => void;
+  onEdit: PatientAction | undefined;
+  onDelete: PatientAction;
 }
 
-function DeleteButton({ patient, onDelete }: DeleteButtonProps) {
+function RowActions({ patient, onEdit, onDelete }: RowActionsProps) {
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="size-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-      onClick={() => onDelete(patient)}
-      aria-label={`Delete ${patient.name}`}
-    >
-      <Trash2 aria-hidden="true" />
-    </Button>
+    <div className="flex items-center justify-end gap-1">
+      {onEdit && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 text-muted-foreground"
+          onClick={() => onEdit(patient)}
+          aria-label={`Edit ${patient.name}`}
+        >
+          <Pencil aria-hidden="true" />
+        </Button>
+      )}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="size-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+        onClick={() => onDelete(patient)}
+        aria-label={`Delete ${patient.name}`}
+      >
+        <Trash2 aria-hidden="true" />
+      </Button>
+    </div>
   );
 }
 
-function PatientCard({ patient, onDelete }: DeleteButtonProps) {
+function DoctorLink({ patient }: { patient: Patient }) {
+  if (!patient.doctor) return <span className="text-muted-foreground">Unassigned</span>;
+
+  return (
+    <Link
+      href={`/doctors/${patient.doctor._id}`}
+      className="grid w-fit rounded-sm hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+    >
+      <span className="font-medium whitespace-nowrap">{patient.doctor.name}</span>
+      <span className="text-xs text-muted-foreground">{patient.doctor.specialization}</span>
+    </Link>
+  );
+}
+
+interface PatientCardProps extends Omit<RowActionsProps, 'patient'> {
+  patient: Patient;
+  showDoctor: boolean;
+}
+
+function PatientCard({ patient, showDoctor, onEdit, onDelete }: PatientCardProps) {
   return (
     <article className="grid gap-3 rounded-lg border bg-card p-4">
       <div className="flex items-start justify-between gap-3">
@@ -42,11 +79,18 @@ function PatientCard({ patient, onDelete }: DeleteButtonProps) {
             {patient.age} yrs · {capitalize(patient.gender)}
           </p>
         </div>
-        <DeleteButton patient={patient} onDelete={onDelete} />
+        <RowActions patient={patient} onEdit={onEdit} onDelete={onDelete} />
       </div>
-      <Badge variant="outline" className="w-fit">
-        {patient.condition}
-      </Badge>
+      <ConditionBadge condition={patient.condition} className="w-fit" />
+      {showDoctor && patient.doctor && (
+        <Link
+          href={`/doctors/${patient.doctor._id}`}
+          className="flex w-fit items-center gap-2 text-sm hover:underline"
+        >
+          <Stethoscope className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          {patient.doctor.name}
+        </Link>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
         <span className="flex items-center gap-2 tabular-nums">
           <Phone className="size-4 shrink-0" aria-hidden="true" />
@@ -64,8 +108,12 @@ interface PatientsTableProps {
   isFetching: boolean;
   skeletonRows: number;
   emptyState: ReactNode;
-  /** Keep stable (useCallback): the columns are memoized on it. */
-  onDelete: (patient: Patient) => void;
+  /** Keep the handlers stable (useCallback): the columns are memoized on them. */
+  onDelete: PatientAction;
+  /** Adds an edit button per row when set. */
+  onEdit?: PatientAction;
+  /** Adds the doctor column (patients page); off on a doctor's own page. */
+  showDoctor?: boolean;
 }
 
 export function PatientsTable({
@@ -75,6 +123,8 @@ export function PatientsTable({
   skeletonRows,
   emptyState,
   onDelete,
+  onEdit,
+  showDoctor = false,
 }: PatientsTableProps) {
   const columns = useMemo<readonly DataTableColumn<Patient>[]>(
     () => [
@@ -94,8 +144,17 @@ export function PatientsTable({
       {
         id: 'condition',
         header: 'Condition',
-        cell: (patient) => <Badge variant="outline">{patient.condition}</Badge>,
+        cell: (patient) => <ConditionBadge condition={patient.condition} />,
       },
+      ...(showDoctor
+        ? [
+            {
+              id: 'doctor',
+              header: 'Doctor',
+              cell: (patient: Patient) => <DoctorLink patient={patient} />,
+            },
+          ]
+        : []),
       {
         id: 'phone',
         header: 'Phone',
@@ -113,16 +172,18 @@ export function PatientsTable({
       {
         id: 'actions',
         header: <span className="sr-only">Actions</span>,
-        className: 'w-12 text-right',
-        cell: (patient) => <DeleteButton patient={patient} onDelete={onDelete} />,
+        className: onEdit ? 'w-20 text-right' : 'w-12 text-right',
+        cell: (patient) => <RowActions patient={patient} onEdit={onEdit} onDelete={onDelete} />,
       },
     ],
-    [onDelete],
+    [onDelete, onEdit, showDoctor],
   );
 
   const renderCard = useCallback(
-    (patient: Patient) => <PatientCard patient={patient} onDelete={onDelete} />,
-    [onDelete],
+    (patient: Patient) => (
+      <PatientCard patient={patient} showDoctor={showDoctor} onEdit={onEdit} onDelete={onDelete} />
+    ),
+    [onDelete, onEdit, showDoctor],
   );
 
   return (

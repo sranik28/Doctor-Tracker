@@ -47,5 +47,11 @@ export const optionalDateParam = z.iso.date().optional().catch(undefined);
 
 const OBJECT_ID_PATTERN = /^[a-f\d]{24}$/i;
 
+export const optionalObjectIdParam = z
+  .string()
+  .regex(OBJECT_ID_PATTERN)
+  .optional()
+  .catch(undefined);
+
 export const isObjectId = (value: string | undefined): value is string =>
   value !== undefined && OBJECT_ID_PATTERN.test(value);

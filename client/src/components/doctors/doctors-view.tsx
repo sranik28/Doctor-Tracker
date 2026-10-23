@@ -1,7 +1,7 @@
 'use client';
 
 import { AlertTriangle, Plus, SearchX, Stethoscope } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { EmptyState } from '@/components/shared/empty-state';
 import { FilterBar } from '@/components/shared/filter-bar';
@@ -11,6 +11,8 @@ import { SearchInput } from '@/components/shared/search-input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDoctors } from '@/hooks/use-doctors';
+import { useClampPage } from '@/hooks/use-clamp-page';
+import { useSearchSeed } from '@/hooks/use-search-seed';
 import { useUrlFilters } from '@/hooks/use-url-filters';
 import { PAGE_SIZE_OPTIONS } from '@/schemas/common.schema';
 import { doctorListFiltersSchema } from '@/schemas/doctor.schema';
@@ -32,9 +34,7 @@ export function DoctorsView() {
   const { data, isLoading, isFetching, isError, isPlaceholderData, refetch } = useDoctors(filters);
 
   const [isCreateOpen, setCreateOpen] = useState(false);
-  // The search box owns its text while typing. To reset it from outside, remount it with a new
-  // seed; the URL may not have updated yet in that render, so the seed carries the value.
-  const [searchSeed, setSearchSeed] = useState(() => ({ key: 0, value: filters.search }));
+  const { searchKey, searchDefaultValue, resetSearch } = useSearchSeed(filters.search);
 
   const activeFilterCount = [
     filters.specialization,
@@ -56,14 +56,15 @@ export function DoctorsView() {
 
   const clearFilters = useCallback(() => {
     setFilters(CLEARED_FILTERS);
-    setSearchSeed((seed) => ({ key: seed.key + 1, value: undefined }));
-  }, [setFilters]);
+    resetSearch();
+  }, [resetSearch, setFilters]);
 
-  // A shared link may point past the last page (e.g. after deletions): go to the last one.
-  const totalPages = data?.meta.totalPages ?? 0;
-  useEffect(() => {
-    if (!isPlaceholderData && totalPages > 0 && filters.page > totalPages) setPage(totalPages);
-  }, [filters.page, isPlaceholderData, setPage, totalPages]);
+  useClampPage({
+    page: filters.page,
+    totalPages: data?.meta.totalPages,
+    isPlaceholderData,
+    setPage,
+  });
 
   const emptyState = hasActiveFilters ? (
     <EmptyState
@@ -106,8 +107,8 @@ export function DoctorsView() {
       <FilterBar
         search={
           <SearchInput
-            key={searchSeed.key}
-            defaultValue={searchSeed.value}
+            key={searchKey}
+            defaultValue={searchDefaultValue}
             onSearch={handleSearch}
             placeholder="Search name or hospital"
             aria-label="Search doctors by name or hospital"

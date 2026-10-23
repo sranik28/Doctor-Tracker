@@ -1,19 +1,17 @@
 'use client';
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { endOfDay, parseISO, startOfDay } from 'date-fns';
 
 import { api } from '@/lib/api';
+import { toApiDateRange } from '@/lib/dates';
 import { doctorKeys } from '@/lib/query-keys';
 import type { CreateDoctorValues, DoctorListFilters } from '@/schemas/doctor.schema';
 import type { ApiPaginatedResponse, ApiSuccessResponse, PaginatedResult } from '@/types/api';
 import type { Doctor, DoctorFilterOptions, DoctorListItem } from '@/types/doctor';
 
-/** URL keeps plain dates; the API gets the user's local day boundaries as ISO datetimes. */
 const toApiParams = ({ from, to, ...rest }: DoctorListFilters) => ({
   ...rest,
-  from: from ? startOfDay(parseISO(from)).toISOString() : undefined,
-  to: to ? endOfDay(parseISO(to)).toISOString() : undefined,
+  ...toApiDateRange(from, to),
 });
 
 const fetchDoctors = async (
@@ -43,6 +41,20 @@ export const useDoctorFilterOptions = () =>
         '/doctors/filters/options',
       );
       return data.data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+/** id + name of doctors for dropdowns (patients filter, reassign). First 50 by name. */
+export const useDoctorOptions = () =>
+  useQuery({
+    queryKey: doctorKeys.options(),
+    queryFn: async ({ signal }) => {
+      const { data } = await api.get<ApiPaginatedResponse<DoctorListItem>>('/doctors', {
+        params: { limit: 50, sort: 'name' },
+        signal,
+      });
+      return data.data.map(({ _id, name, specialization }) => ({ _id, name, specialization }));
     },
     staleTime: 5 * 60 * 1000,
   });

@@ -1,7 +1,7 @@
 'use client';
 
 import { Plus, SearchX, UserRound } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
@@ -9,7 +9,9 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { Pagination } from '@/components/shared/pagination';
 import { SearchInput } from '@/components/shared/search-input';
 import { Button } from '@/components/ui/button';
-import { useDeletePatient, useDoctorPatients } from '@/hooks/use-doctor';
+import { useDeleteDoctorPatient, useDoctorPatients } from '@/hooks/use-doctor';
+import { useClampPage } from '@/hooks/use-clamp-page';
+import { useSearchSeed } from '@/hooks/use-search-seed';
 import { useUrlFilters } from '@/hooks/use-url-filters';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { PAGE_SIZE_OPTIONS } from '@/schemas/common.schema';
@@ -31,12 +33,11 @@ export function DoctorPatientsSection({ doctorId, doctorName }: DoctorPatientsSe
     filters,
     true,
   );
-  const deletePatient = useDeletePatient(doctorId);
+  const deletePatient = useDeleteDoctorPatient(doctorId);
 
   const [isAddOpen, setAddOpen] = useState(false);
   const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null);
-  // Remount seed for the search box (see DoctorsView for why the value travels with it).
-  const [searchSeed, setSearchSeed] = useState(() => ({ key: 0, value: filters.search }));
+  const { searchKey, searchDefaultValue, resetSearch } = useSearchSeed(filters.search);
 
   const handleSearch = useCallback(
     (search: string) => setFilters({ search: search || undefined }),
@@ -45,7 +46,7 @@ export function DoctorPatientsSection({ doctorId, doctorName }: DoctorPatientsSe
 
   const clearSearch = () => {
     setFilters({ search: undefined });
-    setSearchSeed((seed) => ({ key: seed.key + 1, value: undefined }));
+    resetSearch();
   };
 
   // Stable so the memoized table columns don't rebuild on every render.
@@ -63,11 +64,12 @@ export function DoctorPatientsSection({ doctorId, doctorName }: DoctorPatientsSe
     });
   };
 
-  // Deleting the last row of the last page leaves an empty page: step back one.
-  const totalPages = data?.meta.totalPages ?? 0;
-  useEffect(() => {
-    if (!isPlaceholderData && totalPages > 0 && filters.page > totalPages) setPage(totalPages);
-  }, [filters.page, isPlaceholderData, setPage, totalPages]);
+  useClampPage({
+    page: filters.page,
+    totalPages: data?.meta.totalPages,
+    isPlaceholderData,
+    setPage,
+  });
 
   const emptyState = filters.search ? (
     <EmptyState
@@ -102,8 +104,8 @@ export function DoctorPatientsSection({ doctorId, doctorName }: DoctorPatientsSe
         </h2>
         <div className="flex items-center gap-2">
           <SearchInput
-            key={searchSeed.key}
-            defaultValue={searchSeed.value}
+            key={searchKey}
+            defaultValue={searchDefaultValue}
             onSearch={handleSearch}
             placeholder="Search patients"
             aria-label="Search this doctor's patients by name"

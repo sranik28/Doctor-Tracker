@@ -1,11 +1,16 @@
 'use client';
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
 
 import { api } from '@/lib/api';
 import { getApiErrorStatus } from '@/lib/api-error';
-import { doctorKeys } from '@/lib/query-keys';
+import { toLocalNoonIso } from '@/lib/dates';
+import {
+  type PaginatedSnapshot,
+  removeFromPaginatedCache,
+  restorePaginatedCache,
+} from '@/lib/paginated-cache';
+import { doctorKeys, patientKeys } from '@/lib/query-keys';
 import type { AddPatientValues, PatientListFilters } from '@/schemas/patient.schema';
 import type { ApiPaginatedResponse, ApiSuccessResponse, PaginatedResult } from '@/types/api';
 import type { DoctorDetail } from '@/types/doctor';
@@ -49,11 +54,12 @@ export const useDoctorPatients = (
     placeholderData: keepPreviousData,
   });
 
-/** Refresh this doctor (count + patients, via the key prefix) and every doctors list. */
+/** Refresh this doctor (count + patients, via the key prefix), doctors lists and patients lists. */
 const invalidateDoctorData = (queryClient: ReturnType<typeof useQueryClient>, doctorId: string) =>
   Promise.all([
     queryClient.invalidateQueries({ queryKey: doctorKeys.detail(doctorId) }),
     queryClient.invalidateQueries({ queryKey: doctorKeys.lists() }),
+    queryClient.invalidateQueries({ queryKey: patientKeys.all }),
   ]);
 
 export const useAddPatient = (doctorId: string) => {
@@ -65,8 +71,7 @@ export const useAddPatient = (doctorId: string) => {
         `/doctors/${doctorId}/patients`,
         {
           ...values,
-          // Local noon: the chosen calendar day survives any UTC offset.
-          admittedAt: new Date(`${format(admittedAt, 'yyyy-MM-dd')}T12:00:00`).toISOString(),
+          admittedAt: toLocalNoonIso(admittedAt),
           ...(notes && { notes }),
         },
       );
@@ -77,12 +82,12 @@ export const useAddPatient = (doctorId: string) => {
 };
 
 interface DeleteContext {
-  previousLists: [readonly unknown[], PaginatedResult<Patient> | undefined][];
+  previousLists: PaginatedSnapshot<Patient>;
   previousDoctor: DoctorDetail | undefined;
 }
 
 /** Optimistic: the row and the doctor's count update at once, and roll back on failure. */
-export const useDeletePatient = (doctorId: string) => {
+export const useDeleteDoctorPatient = (doctorId: string) => {
   const queryClient = useQueryClient();
 
   return useMutation<void, unknown, Patient, DeleteContext>({
@@ -92,21 +97,11 @@ export const useDeletePatient = (doctorId: string) => {
     onMutate: async (patient) => {
       await queryClient.cancelQueries({ queryKey: doctorKeys.detail(doctorId) });
 
-      const previousLists = queryClient.getQueriesData<PaginatedResult<Patient>>({
-        queryKey: doctorKeys.patients(doctorId),
-      });
       const previousDoctor = queryClient.getQueryData<DoctorDetail>(doctorKeys.detail(doctorId));
-
-      queryClient.setQueriesData<PaginatedResult<Patient>>(
-        { queryKey: doctorKeys.patients(doctorId) },
-        (page) => {
-          if (!page?.items.some((item) => item._id === patient._id)) return page;
-          const total = Math.max(0, page.meta.total - 1);
-          return {
-            items: page.items.filter((item) => item._id !== patient._id),
-            meta: { ...page.meta, total, totalPages: Math.ceil(total / page.meta.limit) },
-          };
-        },
+      const previousLists = removeFromPaginatedCache<Patient>(
+        queryClient,
+        doctorKeys.patients(doctorId),
+        patient._id,
       );
       queryClient.setQueryData<DoctorDetail>(doctorKeys.detail(doctorId), (doctor) =>
         doctor ? { ...doctor, patientCount: Math.max(0, doctor.patientCount - 1) } : doctor,
@@ -115,7 +110,7 @@ export const useDeletePatient = (doctorId: string) => {
       return { previousLists, previousDoctor };
     },
     onError: (_error, _patient, context) => {
-      context?.previousLists.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      restorePaginatedCache(queryClient, context?.previousLists);
       if (context?.previousDoctor) {
         queryClient.setQueryData(doctorKeys.detail(doctorId), context.previousDoctor);
       }
