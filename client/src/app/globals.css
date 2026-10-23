@@ -149,6 +149,12 @@
   html {
     @apply font-sans;
   }
+  /* Tailwind v4 no longer gives buttons a pointer cursor; restore it for everything clickable. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  summary {
+    cursor: pointer;
+  }
 }
 
 /* Indeterminate progress bar (DataTable background refetch). */
