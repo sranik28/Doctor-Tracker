@@ -240,3 +240,11 @@ export const deletePatient = async (patientId: string): Promise<{ _id: Types.Obj
 
   return { _id: deleted._id };
 };
+
+/** Latest admissions with their doctor's name; one page query plus one batched doctor lookup. */
+export const listRecentPatients = (limit: number): Promise<PatientWithDoctor[]> =>
+  PatientModel.find({}, PATIENT_PROJECTION)
+    .sort({ admittedAt: -1 })
+    .limit(limit)
+    .populate(DOCTOR_POPULATE)
+    .lean<PatientWithDoctor[]>();
