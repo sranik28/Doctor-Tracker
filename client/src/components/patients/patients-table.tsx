@@ -1,8 +1,8 @@
 'use client';
 
-import { format, parseISO } from 'date-fns';
 import { Pencil, Phone, Stethoscope, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { cn } from 'cn';
 import { type ReactNode, useCallback, useMemo } from 'react';
 
 import { DataTable, type DataTableColumn } from '@/components/shared/data-table';
@@ -10,10 +10,9 @@ import { Button } from '@/components/ui/button';
 import type { Patient } from '@/types/patient';
 
 import { ConditionBadge } from './condition-badge';
+import { capitalize, formatDate } from '@/lib/format';
 import { formatPhone } from '@/lib/phone';
 
-const formatDate = (iso: string) => format(parseISO(iso), 'd MMM yyyy');
-const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 const getPatientId = (patient: Patient) => patient._id;
 
 type PatientAction = (patient: Patient) => void;
@@ -51,6 +50,21 @@ function RowActions({ patient, onEdit, onDelete }: RowActionsProps) {
   );
 }
 
+/** The patient's name, linking to their profile page. */
+function PatientNameLink({ patient, className }: { patient: Patient; className?: string }) {
+  return (
+    <Link
+      href={`/patients/${patient._id}`}
+      className={cn(
+        'w-fit rounded-sm font-medium hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+        className,
+      )}
+    >
+      {patient.name}
+    </Link>
+  );
+}
+
 function DoctorLink({ patient }: { patient: Patient }) {
   if (!patient.doctor) return <span className="text-muted-foreground">Unassigned</span>;
 
@@ -75,7 +89,7 @@ function PatientCard({ patient, showDoctor, onEdit, onDelete }: PatientCardProps
     <article className="grid gap-3 rounded-lg border bg-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="grid min-w-0 gap-1">
-          <p className="truncate font-medium">{patient.name}</p>
+          <PatientNameLink patient={patient} className="truncate" />
           <p className="text-sm text-muted-foreground">
             {patient.age} yrs · {capitalize(patient.gender)}
           </p>
@@ -132,7 +146,7 @@ export function PatientsTable({
       {
         id: 'name',
         header: 'Name',
-        cell: (patient) => <span className="font-medium">{patient.name}</span>,
+        cell: (patient) => <PatientNameLink patient={patient} />,
       },
       {
         id: 'age',

@@ -1,3 +1,5 @@
+import { format, parseISO } from 'date-fns';
+
 const numberFormat = new Intl.NumberFormat('en-US');
 const compactFormat = new Intl.NumberFormat('en-US', {
   notation: 'compact',
@@ -17,3 +19,9 @@ export const formatPercent = (value: number): string => `${percentFormat.format(
 /** Share of a total as a whole-number percent, "0%" when the total is 0. */
 export const formatShare = (part: number, total: number): string =>
   total === 0 ? '0%' : `${Math.round((part / total) * 100)}%`;
+
+/** "2026-10-24T09:00:00Z" -> "24 Oct 2026" */
+export const formatDate = (iso: string): string => format(parseISO(iso), 'd MMM yyyy');
+
+/** "female" -> "Female" */
+export const capitalize = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);

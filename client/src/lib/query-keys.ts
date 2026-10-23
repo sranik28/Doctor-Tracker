@@ -32,6 +32,7 @@ export const patientKeys = {
   list: (filters: PatientsPageFilters, hospital: string | undefined) =>
     [...patientKeys.lists(), hospital, filters] as const,
   filterOptions: () => [...patientKeys.all, 'filter-options'] as const,
+  detail: (id: string) => [...patientKeys.all, 'detail', id] as const,
 };
 
 export const dashboardKeys = {

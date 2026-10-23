@@ -4,6 +4,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 
 import { useSelectedHospital } from '@/hooks/use-selected-hospital';
 import { api } from '@/lib/api';
+import { getApiErrorStatus } from '@/lib/api-error';
 import { toApiDateRange, toLocalNoonIso } from '@/lib/dates';
 import {
   type PaginatedSnapshot,
@@ -32,6 +33,24 @@ export const usePatients = (filters: PatientsPageFilters) => {
     placeholderData: keepPreviousData,
   });
 };
+
+/** One patient with their doctor, for the profile page. */
+export const usePatient = (patientId: string, enabled: boolean) =>
+  useQuery({
+    queryKey: patientKeys.detail(patientId),
+    queryFn: async ({ signal }) => {
+      const { data } = await api.get<ApiSuccessResponse<Patient>>(`/patients/${patientId}`, {
+        signal,
+      });
+      return data.data;
+    },
+    enabled,
+    // A missing patient (404) or bad id (400) won't change on retry.
+    retry: (failureCount, error) => {
+      const status = getApiErrorStatus(error);
+      return !(status && status >= 400 && status < 500) && failureCount < 1;
+    },
+  });
 
 export const usePatientFilterOptions = () =>
   useQuery({
@@ -79,6 +98,7 @@ export const useUpdatePatient = () => {
     onSuccess: (patient) => {
       // Show the saved row right away; the refetch then re-applies sort and filters.
       replaceInPaginatedCache(queryClient, patientKeys.lists(), patient);
+      queryClient.setQueryData(patientKeys.detail(patient._id), patient);
       return invalidateAfterPatientChange(queryClient);
     },
   });

@@ -188,7 +188,7 @@ sequenceDiagram
 │       │   ├── (dashboard)/             authenticated shell
 │       │   │   ├── dashboard/           analytics
 │       │   │   ├── doctors/ + [id]/     list + detail
-│       │   │   └── patients/            list
+│       │   │   └── patients/ + [id]/    list + profile
 │       │   ├── error.tsx, not-found.tsx, global-error.tsx
 │       │   └── providers.tsx            React Query, theme, toasts
 │       ├── components/
