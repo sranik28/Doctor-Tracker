@@ -7,6 +7,9 @@ const durationSchema = z
   .string()
   .regex(/^\d+(ms|s|m|h|d|w|y)?$/, 'must be a duration such as 15m, 1h or 7d');
 
+const optionalString = <T extends z.ZodType<string>>(schema: T) =>
+  z.preprocess((value) => (value === '' ? undefined : value), schema.optional());
+
 const envSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535),
   NODE_ENV: z.enum(['development', 'production', 'test']),
@@ -18,10 +21,10 @@ const envSchema = z.object({
   ACCESS_TOKEN_EXPIRES_IN: durationSchema,
   REFRESH_TOKEN_EXPIRES_IN: durationSchema,
   CLIENT_URL: z.url(),
-  COOKIE_DOMAIN: z
-    .string()
-    .optional()
-    .transform((value) => (value === '' ? undefined : value)),
+  COOKIE_DOMAIN: optionalString(z.string()),
+  // Only needed by `npm run seed`; the API server runs without them.
+  SEED_ADMIN_EMAIL: optionalString(z.email()),
+  SEED_ADMIN_PASSWORD: optionalString(z.string().min(8, 'must be at least 8 characters')),
 });
 
 export type Env = z.infer<typeof envSchema>;

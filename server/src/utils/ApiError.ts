@@ -16,7 +16,7 @@ export class ApiError extends Error {
   }
 
   static validation(details: unknown, message = 'Validation failed'): ApiError {
-    return new ApiError(422, 'VALIDATION_ERROR', message, details);
+    return new ApiError(400, 'VALIDATION_ERROR', message, details);
   }
 
   static unauthorized(message = 'Authentication required'): ApiError {
@@ -33,6 +33,10 @@ export class ApiError extends Error {
 
   static conflict(message = 'Resource already exists'): ApiError {
     return new ApiError(409, 'CONFLICT', message);
+  }
+
+  static tooManyRequests(message = 'Too many requests, please try again later'): ApiError {
+    return new ApiError(429, 'TOO_MANY_REQUESTS', message);
   }
 
   static internal(message = 'Internal server error'): ApiError {
