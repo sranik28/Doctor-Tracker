@@ -252,7 +252,7 @@ There is deliberately **no doctor delete endpoint**: it is not part of the requi
 
 ### 1. A separate Express API instead of Next.js route handlers
 
-**The ambiguity.** The brief asks for a Next.js app and, in the same breath, for an Express-style API stack (helmet, cors, rate limiting, a controller/service/model layering) plus "Next.js best practices". Next.js route handlers could satisfy both, so the wording can be read as _either_ "Next.js is the whole app" _or_ "two apps". I chose **two apps** (`/client` and `/server`) and want to be explicit about why rather than leave it implicit.
+**The tension in the spec.** The task is explicit about the stack: _Next.js as a separate client application_ and _Node.js + Express as a separate standalone server_, talking over REST. It also lists "best practices in Next.js" as an evaluation criterion, and modern Next.js makes it tempting to skip the second app entirely (route handlers, Server Actions, a data layer inside the same project). I followed the spec literally: two apps, `/client` and `/server`, and the API is only ever reached over HTTP. The real decision was _how to connect them_ without the usual costs of a split architecture, which is the rewrite proxy below. Here is what the separate API buys compared with the Next.js-only alternative:
 
 **Why a separate API wins here**
 
