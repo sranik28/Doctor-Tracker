@@ -21,6 +21,8 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
   onLimitChange: (limit: number) => void;
   pageSizeOptions?: readonly number[];
+  /** Hide the rows-per-page picker when the page size is fixed. */
+  showPageSize?: boolean;
   className?: string;
 }
 
@@ -32,6 +34,7 @@ export function Pagination({
   onPageChange,
   onLimitChange,
   pageSizeOptions = [10, 20, 50],
+  showPageSize = true,
   className,
 }: PaginationProps) {
   if (total === 0) return null;
@@ -54,7 +57,7 @@ export function Pagination({
           <span className="font-medium text-foreground tabular-nums">{lastItem}</span> of{' '}
           <span className="font-medium text-foreground tabular-nums">{total}</span>
         </p>
-        <div className="flex items-center gap-2">
+        <div className={cn('items-center gap-2', showPageSize ? 'flex' : 'hidden')}>
           <span className="hidden text-sm text-muted-foreground lg:inline">Rows per page</span>
           <Select value={String(limit)} onValueChange={(value) => onLimitChange(Number(value))}>
             <SelectTrigger size="sm" className="w-18" aria-label="Rows per page">

@@ -1,5 +1,6 @@
 import type { TimelineRange } from '@/types/dashboard';
 import type { DoctorListFilters } from '@/schemas/doctor.schema';
+import type { PublicDoctorFilters } from '@/schemas/public-doctor.schema';
 import type { PatientListFilters, PatientsPageFilters } from '@/schemas/patient.schema';
 
 // Hierarchical keys: invalidating a prefix (e.g. detail(id)) also covers everything below it.
@@ -14,6 +15,14 @@ export const doctorKeys = {
   patients: (id: string) => [...doctorKeys.detail(id), 'patients'] as const,
   patientList: (id: string, filters: PatientListFilters) =>
     [...doctorKeys.patients(id), filters] as const,
+};
+
+export const publicDoctorKeys = {
+  all: ['public-doctors'] as const,
+  lists: () => [...publicDoctorKeys.all, 'list'] as const,
+  list: (filters: PublicDoctorFilters) => [...publicDoctorKeys.lists(), filters] as const,
+  filterOptions: () => [...publicDoctorKeys.all, 'filter-options'] as const,
+  detail: (id: string) => [...publicDoctorKeys.all, 'detail', id] as const,
 };
 
 export const patientKeys = {

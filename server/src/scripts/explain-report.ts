@@ -12,12 +12,17 @@ import {
   type PipelineQuery,
 } from '../services/dashboard.queries.js';
 import type { DoctorSort } from '../validations/doctor.validation.js';
+import type { PublicDoctorSort } from '../validations/public-doctor.validation.js';
 import type { PatientSort } from '../validations/patient.validation.js';
 import {
   buildDoctorFilter,
   DOCTOR_PROJECTION,
   DOCTOR_SORT_STAGES,
 } from '../services/doctor.service.js';
+import {
+  PUBLIC_DOCTOR_PROJECTION,
+  PUBLIC_DOCTOR_SORT_STAGES,
+} from '../services/public-doctor.service.js';
 import {
   buildPatientFilter,
   PATIENT_PROJECTION,
@@ -216,6 +221,23 @@ const run = async (): Promise<void> => {
       ),
     ];
 
+    const publicDoctorFind = (query: string, input: DoctorInput, sort: PublicDoctorSort = 'name') =>
+      explainFind(
+        query,
+        DoctorModel,
+        doctorFilter(input),
+        PUBLIC_DOCTOR_PROJECTION,
+        PUBLIC_DOCTOR_SORT_STAGES[sort],
+      );
+
+    const publicRows: Row[] = [
+      await publicDoctorFind('public: default list (A-Z)', {}),
+      await publicDoctorFind('public: specialization', { specialization: 'Cardiology' }),
+      await publicDoctorFind('public: hospital', { hospital: 'Square Hospital' }),
+      await publicDoctorFind('public: recently joined', {}, '-createdAt'),
+      await publicDoctorFind(`public: text search ("${doctorTerm}")`, { search: doctorTerm }),
+    ];
+
     type PatientInput = Partial<Parameters<typeof buildPatientFilter>[0]>;
     const patientFilter = (input: PatientInput) =>
       buildPatientFilter({ from: undefined, to: undefined, ...input });
@@ -308,11 +330,12 @@ const run = async (): Promise<void> => {
     ];
 
     printTable('Doctors', doctorRows);
+    printTable('Public directory', publicRows);
     printTable('Patients', patientRows);
     printTable('Dashboard', dashboardRows);
     printTable('Documented trade-offs (intentionally not indexed)', tradeoffRows);
 
-    const failures = [...doctorRows, ...patientRows, ...dashboardRows].filter(
+    const failures = [...doctorRows, ...publicRows, ...patientRows, ...dashboardRows].filter(
       (row) => row.collscan,
     );
     console.log('');
@@ -326,7 +349,7 @@ const run = async (): Promise<void> => {
       process.exitCode = 1;
     } else {
       console.log(
-        `OK: none of the ${doctorRows.length + patientRows.length + dashboardRows.length} key queries use COLLSCAN.`,
+        `OK: none of the ${doctorRows.length + publicRows.length + patientRows.length + dashboardRows.length} key queries use COLLSCAN.`,
       );
     }
   } finally {

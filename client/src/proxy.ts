@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
-import { DEFAULT_AUTHENTICATED_PATH, getSafeRedirectPath } from '@/lib/safe-redirect';
+import { getSafeRedirectPath } from '@/lib/safe-redirect';
 
 const SESSION_COOKIES = ['accessToken', 'refreshToken'] as const;
 const PROTECTED_PREFIXES = ['/dashboard', '/doctors', '/patients'] as const;
@@ -16,10 +16,6 @@ const isProtectedPath = (pathname: string): boolean =>
 export function proxy(request: NextRequest) {
   const { pathname, search, searchParams } = request.nextUrl;
   const hasSession = SESSION_COOKIES.some((name) => request.cookies.has(name));
-
-  if (pathname === '/') {
-    return NextResponse.redirect(new URL(DEFAULT_AUTHENTICATED_PATH, request.url));
-  }
 
   if (isProtectedPath(pathname) && !hasSession) {
     const loginUrl = new URL(LOGIN_PATH, request.url);

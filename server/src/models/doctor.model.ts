@@ -34,6 +34,10 @@ doctorSchema.index({ createdAt: -1 });
 doctorSchema.index({ name: 1 });
 // Filter by hospital, newest first; also serves distinct('hospital') for filter options.
 doctorSchema.index({ hospital: 1, createdAt: -1 });
+// Public directory: specialization / hospital filter, sorted A-Z (its default), without an
+// in-memory sort. The createdAt variants above keep serving the admin list's default order.
+doctorSchema.index({ specialization: 1, name: 1 });
+doctorSchema.index({ hospital: 1, name: 1 });
 // Search box: name weighs more than hospital.
 doctorSchema.index(
   { name: 'text', hospital: 'text' },

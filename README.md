@@ -4,8 +4,9 @@ A secure admin web app for managing **doctors** and the **patients** assigned to
 
 ## Elevator Pitch
 
-Hospital admins need to answer three questions quickly: _who are our doctors, who are their patients, and what is the workload right now?_ Doctor Tracker answers them in one place:
+Hospital admins need to answer three questions quickly: _who are our doctors, who are their patients, and what is the workload right now?_ Doctor Tracker answers them in one place, and gives the public a simple way to find a doctor:
 
+- **Public directory** (no login): anyone can find a doctor by name, hospital or specialization and open a profile. It shows only name, specialization and hospital, never contact details or patient data.
 - **Doctors**: searchable, filterable, sortable directory; each doctor has a detail page listing their patients, where patients can be admitted or removed.
 - **Patients**: a hospital-wide patient list with search, condition/gender/doctor/date filters, sorting, edit and delete.
 - **Dashboard**: headline numbers, admissions over time, workload per doctor, condition mix and specialization mix, each chart with an accessible table view.
@@ -179,6 +180,9 @@ sequenceDiagram
 ├── client/                      Next.js 16 app (App Router, src/)
 │   └── src/
 │       ├── app/
+│       │   ├── (public)/                public site, no login
+│       │   │   ├── page.tsx             landing + search
+│       │   │   └── find-doctors/ + [id]/ directory + profile
 │       │   ├── (auth)/login/            login page
 │       │   ├── (dashboard)/             authenticated shell
 │       │   │   ├── dashboard/           analytics
@@ -190,7 +194,7 @@ sequenceDiagram
 │       │   ├── ui/                      shadcn primitives
 │       │   ├── layout/ shared/          shell, pagination, empty/error states
 │       │   ├── charts/ dashboard/       Recharts wrappers, stat cards
-│       │   └── auth/ doctors/ patients/ feature components
+│       │   └── auth/ doctors/ patients/ public/ feature components
 │       ├── hooks/                       React Query hooks, URL-filter state
 │       ├── lib/                         axios instance, query keys, formatters
 │       ├── schemas/                     Zod schemas shared by forms
@@ -216,7 +220,7 @@ sequenceDiagram
 
 ### API reference
 
-Base path `/api`. Every response uses one envelope: `{ success: true, data, meta? }` or `{ success: false, error: { code, message, details? } }`. All routes except `health`, `auth/login` and `auth/refresh` require an authenticated **admin**. Lists are paginated server-side (`page`, `limit`: default 10, max 50).
+Base path `/api`. Every response uses one envelope: `{ success: true, data, meta? }` or `{ success: false, error: { code, message, details? } }`. All routes except `health`, `auth/login`, `auth/refresh` and `public/*` require an authenticated **admin**. The anonymous `public/*` routes are read-only, rate limited (120 requests/IP/minute), `limit` is capped at 24, and they return only `_id`, `name`, `specialization` and `hospital`. Lists are paginated server-side (`page`, `limit`: default 10, max 50).
 
 | Method | Path                               | Description                                                                                                  |
 | ------ | ---------------------------------- | ------------------------------------------------------------------------------------------------------------ |
@@ -243,6 +247,9 @@ Base path `/api`. Every response uses one envelope: `{ success: true, data, meta
 | GET    | `/dashboard/conditions`            | patients by condition                                                                                        |
 | GET    | `/dashboard/specializations`       | doctors by specialization                                                                                    |
 | GET    | `/dashboard/recent-patients`       | latest admissions                                                                                            |
+| GET    | `/public/doctors`                  | public directory: `search`, `specialization`, `hospital`, `sort`, `page`, `limit` (no auth)                  |
+| GET    | `/public/doctors/filters/options`  | specializations and hospitals for the public filters (no auth)                                               |
+| GET    | `/public/doctors/:id`              | one doctor's public profile (no auth)                                                                        |
 
 There is deliberately **no doctor delete endpoint**: it is not part of the requirements, and deleting a doctor would orphan their patients.
 
@@ -308,24 +315,25 @@ Embedding only wins on "read one doctor with all patients", and that screen is p
 
 **Index strategy**
 
-| Collection | Index                                  | Serves                                                     |
-| ---------- | -------------------------------------- | ---------------------------------------------------------- |
-| `patients` | `{ doctorId: 1, createdAt: -1 }`       | a doctor's patients (newest first), per-doctor counts      |
-|            | `{ doctorId: 1, admittedAt: -1 }`      | patient list filtered by doctor                            |
-|            | `{ condition: 1, admittedAt: -1 }`     | condition filter, conditions chart                         |
-|            | `{ gender: 1, admittedAt: -1 }`        | gender filter and its count                                |
-|            | `{ admittedAt: -1 }`                   | default list order, date ranges, timeline, recent patients |
-|            | `{ name: 1 }`                          | A–Z / Z–A sort                                             |
-|            | text on `name`                         | search box                                                 |
-| `doctors`  | `{ email: 1 }` unique                  | no duplicate doctors                                       |
-|            | `{ createdAt: -1 }`, `{ name: 1 }`     | default list, A–Z / Z–A sort                               |
-|            | `{ specialization: 1, createdAt: -1 }` | filter, specializations chart                              |
-|            | `{ hospital: 1, createdAt: -1 }`       | hospital filter                                            |
-|            | text on `name`, `hospital`             | search box                                                 |
+| Collection | Index                                                        | Serves                                                         |
+| ---------- | ------------------------------------------------------------ | -------------------------------------------------------------- |
+| `patients` | `{ doctorId: 1, createdAt: -1 }`                             | a doctor's patients (newest first), per-doctor counts          |
+|            | `{ doctorId: 1, admittedAt: -1 }`                            | patient list filtered by doctor                                |
+|            | `{ condition: 1, admittedAt: -1 }`                           | condition filter, conditions chart                             |
+|            | `{ gender: 1, admittedAt: -1 }`                              | gender filter and its count                                    |
+|            | `{ admittedAt: -1 }`                                         | default list order, date ranges, timeline, recent patients     |
+|            | `{ name: 1 }`                                                | A–Z / Z–A sort                                                 |
+|            | text on `name`                                               | search box                                                     |
+| `doctors`  | `{ email: 1 }` unique                                        | no duplicate doctors                                           |
+|            | `{ createdAt: -1 }`, `{ name: 1 }`                           | default list, A–Z / Z–A sort                                   |
+|            | `{ specialization: 1, createdAt: -1 }`                       | filter, specializations chart                                  |
+|            | `{ hospital: 1, createdAt: -1 }`                             | hospital filter                                                |
+|            | `{ specialization: 1, name: 1 }`, `{ hospital: 1, name: 1 }` | public directory filters, sorted A–Z without an in-memory sort |
+|            | text on `name`, `hospital`                                   | search box                                                     |
 
 Indexes cost write speed and memory, so there are only as many as there are query shapes. Two sorts are intentionally **not** indexed: sorting _all_ patients by age or by record-created date (shown below as documented trade-offs). They are rare admin actions and each would add a write-amplifying index; `limit` keeps the response small and the in-memory sort is bounded by the collection size. Index them if usage shows they matter.
 
-**Proof: `bun run --cwd server explain`** (30 doctors, 1,500 patients, page size 10). The script exits non-zero if any key query uses a `COLLSCAN`. Result: **`OK: none of the 26 key queries use COLLSCAN.`** Plans read bottom-up (`IXSCAN` first). `PROJECTION_COVERED` means the query was answered from the index alone, with zero documents fetched.
+**Proof: `bun run --cwd server explain`** (30 doctors, 1,500 patients, page size 10). The script exits non-zero if any key query uses a `COLLSCAN`. Result: **`OK: none of the 31 key queries use COLLSCAN.`** Plans read bottom-up (`IXSCAN` first). `PROJECTION_COVERED` means the query was answered from the index alone, with zero documents fetched.
 
 #### Doctors
 
@@ -339,6 +347,16 @@ Indexes cost write speed and memory, so there are only as many as there are quer
 | doctors: text search ("Halvorson") | PROJECTION_SIMPLE < SORT < TEXT_MATCH < FETCH < IXSCAN (in-memory sort) | doctor_text_search            |         1 |            1 |   0 |
 | doctors: count (specialization)    | GROUP < COUNT_SCAN                                                      | specialization_1_createdAt_-1 |         1 |            0 |   0 |
 
+#### Public directory
+
+| Query                             | Plan                                                                    | Index                   | nReturned | docsExamined |  ms |
+| --------------------------------- | ----------------------------------------------------------------------- | ----------------------- | --------: | -----------: | --: |
+| public: default list (A-Z)        | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | name_1                  |        10 |           10 |   0 |
+| public: specialization            | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | specialization_1_name_1 |         4 |            4 |   0 |
+| public: hospital                  | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | hospital_1_name_1       |         3 |            3 |   0 |
+| public: recently joined           | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | createdAt_-1            |        10 |           10 |   0 |
+| public: text search ("Halvorson") | PROJECTION_SIMPLE < SORT < TEXT_MATCH < FETCH < IXSCAN (in-memory sort) | doctor_text_search      |         1 |            1 |   0 |
+
 #### Patients
 
 | Query                                           | Plan                                                                    | Index                     | nReturned | docsExamined |  ms |
@@ -348,22 +366,22 @@ Indexes cost write speed and memory, so there are only as many as there are quer
 | patients: doctor                                | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | doctorId_1_admittedAt_-1  |        10 |           10 |   0 |
 | patients: admitted date range                   | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | admittedAt_-1             |        10 |           10 |   0 |
 | patients: gender                                | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | gender_1_admittedAt_-1    |        10 |           10 |   0 |
-| patients: text search ("Raynor")                | PROJECTION_SIMPLE < SORT < TEXT_MATCH < FETCH < IXSCAN (in-memory sort) | patient_text_search       |         3 |            3 |   0 |
+| patients: text search ("Raynor")                | PROJECTION_SIMPLE < SORT < TEXT_MATCH < FETCH < IXSCAN (in-memory sort) | patient_text_search       |         5 |            5 |   0 |
 | patients: condition + date range                | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | condition_1_admittedAt_-1 |        10 |           10 |   0 |
 | patients: sort by name                          | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | name_1                    |        10 |           10 |   0 |
 | patients: count (condition)                     | GROUP < COUNT_SCAN                                                      | condition_1_admittedAt_-1 |         1 |            0 |   0 |
 | doctor page: a doctor's patients (newest first) | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | doctorId_1_createdAt_-1   |        10 |           10 |   0 |
-| list: patient counts for a page of doctors      | GROUP < PROJECTION_COVERED < IXSCAN                                     | doctorId_1_createdAt_-1   |         1 |            0 |   0 |
+| list: patient counts for a page of doctors      | GROUP < PROJECTION_COVERED < IXSCAN                                     | doctorId_1_createdAt_-1   |         1 |            0 |   1 |
 
 #### Dashboard
 
 | Query                           | Plan                                       | Index                         | nReturned | docsExamined |  ms |
 | ------------------------------- | ------------------------------------------ | ----------------------------- | --------: | -----------: | --: |
-| dashboard: stats (month facets) | PROJECTION_COVERED < IXSCAN                | admittedAt_-1                 |       435 |            0 |   0 |
-| dashboard: timeline 7d          | GROUP < PROJECTION_COVERED < IXSCAN        | admittedAt_-1                 |         7 |            0 |   0 |
-| dashboard: timeline 30d         | GROUP < PROJECTION_COVERED < IXSCAN        | admittedAt_-1                 |        28 |            0 |   0 |
-| dashboard: timeline 12m         | GROUP < PROJECTION_COVERED < IXSCAN        | admittedAt_-1                 |        12 |            0 |   2 |
-| dashboard: patients per doctor  | GROUP < PROJECTION_COVERED < IXSCAN        | doctorId_1_admittedAt_-1      |        30 |            0 |   1 |
+| dashboard: stats (month facets) | PROJECTION_COVERED < IXSCAN                | admittedAt_-1                 |       441 |            0 |   1 |
+| dashboard: timeline 7d          | GROUP < PROJECTION_COVERED < IXSCAN        | admittedAt_-1                 |         7 |            0 |   1 |
+| dashboard: timeline 30d         | GROUP < PROJECTION_COVERED < IXSCAN        | admittedAt_-1                 |        28 |            0 |   1 |
+| dashboard: timeline 12m         | GROUP < PROJECTION_COVERED < IXSCAN        | admittedAt_-1                 |        12 |            0 |   3 |
+| dashboard: patients per doctor  | GROUP < PROJECTION_COVERED < IXSCAN        | doctorId_1_admittedAt_-1      |        30 |            0 |   3 |
 | dashboard: conditions           | GROUP < PROJECTION_COVERED < IXSCAN        | condition_1_admittedAt_-1     |        12 |            0 |   1 |
 | dashboard: specializations      | GROUP < PROJECTION_COVERED < IXSCAN        | specialization_1_createdAt_-1 |         8 |            0 |   0 |
 | dashboard: recent patients      | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN | admittedAt_-1                 |        10 |           10 |   0 |
@@ -372,29 +390,30 @@ Indexes cost write speed and memory, so there are only as many as there are quer
 
 | Query                                     | Plan                                           | Index | nReturned | docsExamined |  ms |
 | ----------------------------------------- | ---------------------------------------------- | ----- | --------: | -----------: | --: |
-| patients: sort by age (no index)          | PROJECTION_SIMPLE < SORT < COLLSCAN ⚠ COLLSCAN | -     |        10 |         1500 |   0 |
-| patients: sort by created date (no index) | PROJECTION_SIMPLE < SORT < COLLSCAN ⚠ COLLSCAN | -     |        10 |         1500 |   0 |
+| patients: sort by age (no index)          | PROJECTION_SIMPLE < SORT < COLLSCAN ⚠ COLLSCAN | -     |        10 |         1500 |   1 |
+| patients: sort by created date (no index) | PROJECTION_SIMPLE < SORT < COLLSCAN ⚠ COLLSCAN | -     |        10 |         1500 |   1 |
 
 > The text-search rows include an in-memory `SORT` over the (small) set of text matches, which is how MongoDB combines `$text` with a sort. Timings are from a small local dataset and only meaningful relative to `docsExamined`, which is what scales.
 
 ### 3. Other decisions
 
-| Decision                   | Choice                                                                                                        | Why                                                                                                               |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Session storage            | httpOnly cookies, not `localStorage`                                                                          | tokens are unreachable from XSS; the browser attaches them automatically                                          |
-| Access + refresh tokens    | 15 min / 7 d, refresh **rotated**, hash stored                                                                | short blast radius for a stolen access token; reuse of a rotated refresh token is rejected                        |
-| Role check                 | `authorize('admin')` on every data router                                                                     | the app is admin-only today, but the guard is already in place for more roles                                     |
-| Validation                 | Zod on body, query _and_ params of every route; same Zod schemas power client forms                           | one source of truth for rules, consistent error shape (`details` per field)                                       |
-| Error handling             | one `ApiError` type and a global handler; stack traces never leave the server in production                   | predictable client handling, no information leaks                                                                 |
-| Server state on the client | TanStack Query (cache, dedupe, retry, optimistic add/remove of a doctor's patients)                           | no hand-rolled fetching, and no global store needed: server state lives in the query cache, view state in the URL |
-| Filters in the URL         | `searchParams` own filter, sort and page state (`use-url-filters`)                                            | shareable and bookmarkable, back button works, survives reload                                                    |
-| Charts                     | Recharts, code-split and loaded lazily; each chart has a data-table view and uses a colour-blind-safe palette | keeps Recharts out of the initial JS and charts accessible                                                        |
-| Initial JS (gzip)          | ~283 KB login & dashboard, ~356 KB doctors, ~360 KB patients                                                  | measured on the production build; Recharts is not in any initial bundle                                           |
-| Dashboard cache            | in-process 60 s TTL cache, no invalidation                                                                    | cheap and fine for a single instance; swap for Redis if the API is scaled horizontally                            |
-| Rate limiting              | in-memory `express-rate-limit`                                                                                | enough for one instance; use a shared store behind multiple instances                                             |
-| Liveness vs readiness      | `/api/health` does not touch the DB                                                                           | a database blip must not make the platform kill and restart healthy API containers                                |
-| Container                  | multi-stage, production deps only, non-root, `HEALTHCHECK`, `node dist/server.js` as PID-1 command            | clean `SIGTERM` handling for graceful shutdown                                                                    |
-| Timezone                   | day/month buckets computed in `Asia/Dhaka`                                                                    | "today" on the dashboard matches the admins' wall clock                                                           |
+| Decision                   | Choice                                                                                                                                               | Why                                                                                                               |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Session storage            | httpOnly cookies, not `localStorage`                                                                                                                 | tokens are unreachable from XSS; the browser attaches them automatically                                          |
+| Access + refresh tokens    | 15 min / 7 d, refresh **rotated**, hash stored                                                                                                       | short blast radius for a stolen access token; reuse of a rotated refresh token is rejected                        |
+| Public directory           | separate `/api/public/*` router with its own projection (no phone/email, no patient counts), `Cache-Control: public, max-age=60`, its own rate limit | the admin routes stay admin-only and unchanged; a public response can never leak a field the projection omits     |
+| Role check                 | `authorize('admin')` on every data router                                                                                                            | the data routes are admin-only today, but the guard is already in place for more roles                            |
+| Validation                 | Zod on body, query _and_ params of every route; same Zod schemas power client forms                                                                  | one source of truth for rules, consistent error shape (`details` per field)                                       |
+| Error handling             | one `ApiError` type and a global handler; stack traces never leave the server in production                                                          | predictable client handling, no information leaks                                                                 |
+| Server state on the client | TanStack Query (cache, dedupe, retry, optimistic add/remove of a doctor's patients)                                                                  | no hand-rolled fetching, and no global store needed: server state lives in the query cache, view state in the URL |
+| Filters in the URL         | `searchParams` own filter, sort and page state (`use-url-filters`)                                                                                   | shareable and bookmarkable, back button works, survives reload                                                    |
+| Charts                     | Recharts, code-split and loaded lazily; each chart has a data-table view and uses a colour-blind-safe palette                                        | keeps Recharts out of the initial JS and charts accessible                                                        |
+| Initial JS (gzip)          | ~283 KB login & dashboard, ~356 KB doctors, ~360 KB patients                                                                                         | measured on the production build; Recharts is not in any initial bundle                                           |
+| Dashboard cache            | in-process 60 s TTL cache, no invalidation                                                                                                           | cheap and fine for a single instance; swap for Redis if the API is scaled horizontally                            |
+| Rate limiting              | in-memory `express-rate-limit`                                                                                                                       | enough for one instance; use a shared store behind multiple instances                                             |
+| Liveness vs readiness      | `/api/health` does not touch the DB                                                                                                                  | a database blip must not make the platform kill and restart healthy API containers                                |
+| Container                  | multi-stage, production deps only, non-root, `HEALTHCHECK`, `node dist/server.js` as PID-1 command                                                   | clean `SIGTERM` handling for graceful shutdown                                                                    |
+| Timezone                   | day/month buckets computed in `Asia/Dhaka`                                                                                                           | "today" on the dashboard matches the admins' wall clock                                                           |
 
 ---
 
@@ -415,6 +434,16 @@ Screenshots live in [`docs/screenshots`](docs/screenshots). They are placeholder
 | Patients                                                     |
 | ------------------------------------------------------------ |
 | ![Patients (desktop)](docs/screenshots/patients-desktop.png) |
+
+### Public site
+
+| Landing (desktop)                                       | Find a doctor (desktop)                                               |
+| ------------------------------------------------------- | --------------------------------------------------------------------- |
+| ![Landing (desktop)](docs/screenshots/home-desktop.png) | ![Find a doctor (desktop)](docs/screenshots/find-doctors-desktop.png) |
+
+| Landing (mobile)                                      | Find a doctor (mobile)                                              |
+| ----------------------------------------------------- | ------------------------------------------------------------------- |
+| ![Landing (mobile)](docs/screenshots/home-mobile.png) | ![Find a doctor (mobile)](docs/screenshots/find-doctors-mobile.png) |
 
 ### Mobile
 

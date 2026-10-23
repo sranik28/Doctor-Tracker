@@ -42,3 +42,15 @@ export const loginAccountRateLimiter = rateLimit({
     next(tooManyLoginAttempts());
   },
 });
+
+/** The public directory is anonymous and cacheable; 120 requests per IP per minute is plenty. */
+export const publicRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 120,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  identifier: 'public',
+  handler: (_req, _res, next) => {
+    next(ApiError.tooManyRequests('Too many requests. Please slow down.'));
+  },
+});

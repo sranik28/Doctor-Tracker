@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     default: 'Doctor Tracker',
     template: '%s | Doctor Tracker',
   },
-  description: 'Secure admin dashboard to manage doctors and their patients.',
+  description: 'Find a doctor, and a secure admin dashboard to manage doctors and their patients.',
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
