@@ -24,7 +24,7 @@ export interface DoctorFilterOptions {
   hospitals: string[];
 }
 
-const DOCTOR_PROJECTION = {
+export const DOCTOR_PROJECTION = {
   name: 1,
   specialization: 1,
   hospital: 1,
@@ -35,7 +35,7 @@ const DOCTOR_PROJECTION = {
 } as const;
 
 // Each option is backed by an index, so sorting never needs a collection scan.
-const SORT_STAGES: Record<DoctorSort, Record<string, 1 | -1>> = {
+export const DOCTOR_SORT_STAGES: Record<DoctorSort, Record<string, 1 | -1>> = {
   createdAt: { createdAt: 1 },
   '-createdAt': { createdAt: -1 },
   name: { name: 1 },
@@ -84,7 +84,7 @@ export const listDoctors = async (
 
   const [doctors, total] = await Promise.all([
     DoctorModel.find(filter, DOCTOR_PROJECTION)
-      .sort(SORT_STAGES[query.sort])
+      .sort(DOCTOR_SORT_STAGES[query.sort])
       .skip(getSkip(query))
       .limit(query.limit)
       .lean<DoctorFields[]>(),

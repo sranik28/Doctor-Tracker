@@ -30,7 +30,7 @@ type PatientFields = Pick<
   | 'updatedAt'
 >;
 
-const PATIENT_PROJECTION = {
+export const PATIENT_PROJECTION = {
   name: 1,
   age: 1,
   gender: 1,
@@ -125,7 +125,7 @@ export type PatientWithDoctor = PatientFields & { doctor: DoctorSummary | null }
 // One extra query per request (doctor ids batched with $in), never one per patient.
 const DOCTOR_POPULATE = { path: 'doctor', select: '_id name specialization' } as const;
 
-const PATIENT_SORT_STAGES: Record<PatientSort, Record<string, 1 | -1>> = {
+export const PATIENT_SORT_STAGES: Record<PatientSort, Record<string, 1 | -1>> = {
   admittedAt: { admittedAt: 1 },
   '-admittedAt': { admittedAt: -1 },
   name: { name: 1 },

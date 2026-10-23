@@ -4,6 +4,15 @@ import type { NextConfig } from 'next';
 
 const apiInternalUrl = process.env.API_INTERNAL_URL ?? 'http://localhost:5000';
 
+// The rewrite destination is read when `next build` runs and baked into the build, so a
+// production build without API_INTERNAL_URL would silently proxy /api/* to localhost.
+if (process.env.NODE_ENV === 'production' && !process.env.API_INTERNAL_URL) {
+  console.warn(
+    '[next.config] API_INTERNAL_URL is not set: /api/* will be proxied to http://localhost:5000. ' +
+      'Set it (at build time) to your API base URL for any real deployment.',
+  );
+}
+
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,

@@ -10,27 +10,52 @@ const durationSchema = z
 const optionalString = <T extends z.ZodType<string>>(schema: T) =>
   z.preprocess((value) => (value === '' ? undefined : value), schema.optional());
 
-const envSchema = z.object({
-  PORT: z.coerce.number().int().min(1).max(65535),
-  NODE_ENV: z.enum(['development', 'production', 'test']),
-  MONGODB_URI: z
-    .string()
-    .regex(/^mongodb(\+srv)?:\/\//, 'must start with mongodb:// or mongodb+srv://'),
-  JWT_ACCESS_SECRET: z.string().min(32, 'must be at least 32 characters'),
-  JWT_REFRESH_SECRET: z.string().min(32, 'must be at least 32 characters'),
-  ACCESS_TOKEN_EXPIRES_IN: durationSchema,
-  REFRESH_TOKEN_EXPIRES_IN: durationSchema,
-  CLIENT_URL: z.url(),
-  COOKIE_DOMAIN: optionalString(z.string()),
-  // Number of reverse proxies in front of Express whose X-Forwarded-For entry we trust.
-  TRUST_PROXY: z.preprocess(
-    (value) => (value === '' ? undefined : value),
-    z.coerce.number().int().min(0).default(1),
-  ),
-  // Only needed by `npm run seed`; the API server runs without them.
-  SEED_ADMIN_EMAIL: optionalString(z.email()),
-  SEED_ADMIN_PASSWORD: optionalString(z.string().min(8, 'must be at least 8 characters')),
-});
+const PLACEHOLDER_SECRET = /^replace-with/i;
+
+const envSchema = z
+  .object({
+    PORT: z.coerce.number().int().min(1).max(65535),
+    NODE_ENV: z.enum(['development', 'production', 'test']),
+    MONGODB_URI: z
+      .string()
+      .regex(/^mongodb(\+srv)?:\/\//, 'must start with mongodb:// or mongodb+srv://'),
+    JWT_ACCESS_SECRET: z.string().min(32, 'must be at least 32 characters'),
+    JWT_REFRESH_SECRET: z.string().min(32, 'must be at least 32 characters'),
+    ACCESS_TOKEN_EXPIRES_IN: durationSchema,
+    REFRESH_TOKEN_EXPIRES_IN: durationSchema,
+    CLIENT_URL: z.url(),
+    COOKIE_DOMAIN: optionalString(z.string()),
+    // Number of reverse proxies in front of Express whose X-Forwarded-For entry we trust.
+    TRUST_PROXY: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.coerce.number().int().min(0).default(1),
+    ),
+    // Only needed by `npm run seed`; the API server runs without them.
+    SEED_ADMIN_EMAIL: optionalString(z.email()),
+    SEED_ADMIN_PASSWORD: optionalString(z.string().min(8, 'must be at least 8 characters')),
+  })
+  .superRefine((env, context) => {
+    if (env.JWT_ACCESS_SECRET === env.JWT_REFRESH_SECRET) {
+      context.addIssue({
+        code: 'custom',
+        path: ['JWT_REFRESH_SECRET'],
+        message: 'must be different from JWT_ACCESS_SECRET',
+      });
+    }
+
+    if (env.NODE_ENV !== 'production') return;
+
+    // Production must never run on the placeholder secrets copied from .env.example.
+    for (const key of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'] as const) {
+      if (PLACEHOLDER_SECRET.test(env[key])) {
+        context.addIssue({
+          code: 'custom',
+          path: [key],
+          message: 'is still the .env.example placeholder; generate a real secret for production',
+        });
+      }
+    }
+  });
 
 export type Env = z.infer<typeof envSchema>;
 
