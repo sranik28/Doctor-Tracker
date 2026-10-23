@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { type AddPatientValues, PATIENT_GENDER_OPTIONS } from '@/schemas/patient.schema';
+import { PhoneField } from '@/components/shared/phone-field';
 
 /** Field names these inputs render, for mapping server field errors back onto them. */
 export const PATIENT_FORM_FIELDS = [
@@ -108,12 +109,12 @@ export function PatientFormFields() {
             <FormItem>
               <FormLabel>Phone</FormLabel>
               <FormControl>
-                <Input
-                  type="tel"
-                  inputMode="tel"
-                  placeholder="+880 1811-000000"
-                  autoComplete="off"
-                  {...field}
+                <PhoneField
+                  name={field.name}
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder="1811-000000"
                 />
               </FormControl>
               <FormMessage />

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import type { Patient } from '@/types/patient';
 
 import { ConditionBadge } from './condition-badge';
+import { formatPhone } from '@/lib/phone';
 
 const formatDate = (iso: string) => format(parseISO(iso), 'd MMM yyyy');
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
@@ -94,7 +95,7 @@ function PatientCard({ patient, showDoctor, onEdit, onDelete }: PatientCardProps
       <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
         <span className="flex items-center gap-2 tabular-nums">
           <Phone className="size-4 shrink-0" aria-hidden="true" />
-          {patient.phone}
+          {formatPhone(patient.phone)}
         </span>
         <span>Admitted {formatDate(patient.admittedAt)}</span>
       </div>
@@ -164,7 +165,9 @@ export function PatientsTable({
         id: 'phone',
         header: 'Phone',
         hideBelow: 'xl',
-        cell: (patient) => <span className="whitespace-nowrap tabular-nums">{patient.phone}</span>,
+        cell: (patient) => (
+          <span className="whitespace-nowrap tabular-nums">{formatPhone(patient.phone)}</span>
+        ),
       },
       {
         id: 'admittedAt',

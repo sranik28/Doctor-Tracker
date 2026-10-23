@@ -6,9 +6,9 @@ import {
   optionalDateParam,
   optionalParam,
   pageParam,
-  phoneSchema,
   requiredText,
 } from './common.schema';
+import { phoneSchema } from './phone.schema';
 
 export const DOCTOR_SORT_OPTIONS = [
   { value: '-createdAt', label: 'Newest first' },

@@ -23,6 +23,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { PhoneField } from '@/components/shared/phone-field';
 import { useCreateDoctor, useDoctorFilterOptions } from '@/hooks/use-doctors';
 import { getApiErrorMessage } from '@/lib/api-error';
 import { applyApiFieldErrors } from '@/lib/form-errors';
@@ -134,12 +135,12 @@ export function CreateDoctorDialog({ open, onOpenChange }: CreateDoctorDialogPro
                   <FormItem>
                     <FormLabel>Phone</FormLabel>
                     <FormControl>
-                      <Input
-                        type="tel"
-                        inputMode="tel"
-                        placeholder="+880 1711-000000"
-                        autoComplete="off"
-                        {...field}
+                      <PhoneField
+                        name={field.name}
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        placeholder="1711-000000"
                       />
                     </FormControl>
                     <FormMessage />

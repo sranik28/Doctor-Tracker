@@ -8,6 +8,7 @@ import { type ReactNode, useCallback } from 'react';
 import { DataTable, type DataTableColumn } from '@/components/shared/data-table';
 import { Badge } from '@/components/ui/badge';
 import type { DoctorListItem } from '@/types/doctor';
+import { formatPhone } from '@/lib/phone';
 
 const formatDate = (iso: string) => format(parseISO(iso), 'd MMM yyyy');
 
@@ -27,7 +28,9 @@ const COLUMNS: readonly DataTableColumn<DoctorListItem>[] = [
   {
     id: 'phone',
     header: 'Phone',
-    cell: (doctor) => <span className="whitespace-nowrap tabular-nums">{doctor.phone}</span>,
+    cell: (doctor) => (
+      <span className="whitespace-nowrap tabular-nums">{formatPhone(doctor.phone)}</span>
+    ),
   },
   {
     id: 'email',
@@ -79,7 +82,10 @@ function DoctorCard({ doctor }: { doctor: DoctorListItem }) {
       </div>
       <div className="grid gap-1.5">
         {detail(<Building2 className="size-4 shrink-0" aria-hidden="true" />, doctor.hospital)}
-        {detail(<Phone className="size-4 shrink-0" aria-hidden="true" />, doctor.phone)}
+        {detail(
+          <Phone className="size-4 shrink-0" aria-hidden="true" />,
+          formatPhone(doctor.phone),
+        )}
         {detail(<Mail className="size-4 shrink-0" aria-hidden="true" />, doctor.email)}
       </div>
       <p className="text-xs text-muted-foreground">Added {formatDate(doctor.createdAt)}</p>

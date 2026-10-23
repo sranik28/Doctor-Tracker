@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getInitials } from '@/lib/get-initials';
 import type { DoctorDetail } from '@/types/doctor';
+import { formatPhone, toE164 } from '@/lib/phone';
 
 interface DetailItemProps {
   icon: ReactNode;
@@ -57,8 +58,8 @@ export function DoctorProfileCard({ doctor }: { doctor: DoctorDetail }) {
             {doctor.hospital}
           </DetailItem>
           <DetailItem icon={<Phone className="size-4" aria-hidden="true" />} label="Phone">
-            <a href={`tel:${doctor.phone.replace(/[^\d+]/g, '')}`} className="hover:underline">
-              {doctor.phone}
+            <a href={`tel:${toE164(doctor.phone)}`} className="hover:underline">
+              {formatPhone(doctor.phone)}
             </a>
           </DetailItem>
           <DetailItem icon={<Mail className="size-4" aria-hidden="true" />} label="Email">

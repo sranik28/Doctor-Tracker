@@ -1,3 +1,4 @@
+import { parsePhoneNumberFromString } from 'libphonenumber-js/min';
 import { z } from 'zod';
 
 export const DEFAULT_PAGE_LIMIT = 10;
@@ -37,11 +38,22 @@ export const requiredText = (label: string, min: number, max: number) =>
     .min(min, `${label} must be at least ${min} characters`)
     .max(max, `${label} must be at most ${max} characters`);
 
+/**
+ * A real phone number for its country (checked with libphonenumber's "min" metadata, the same
+ * one the client's phone field uses), stored in E.164 form: "+8801711123456".
+ */
 export const phoneSchema = z
   .string({ error: 'Phone is required' })
   .trim()
-  .regex(/^\+?[\d\s\-()]{7,20}$/, { error: 'Enter a valid phone number', abort: true })
-  .refine((phone) => phone.replace(/\D/g, '').length >= 7, 'Enter a valid phone number');
+  .min(1, 'Phone is required')
+  .transform((value, ctx) => {
+    const phone = parsePhoneNumberFromString(value);
+    if (!phone?.isValid()) {
+      ctx.addIssue({ code: 'custom', message: 'Enter a valid phone number' });
+      return z.NEVER;
+    }
+    return phone.number;
+  });
 
 export const emailSchema = z
   .string({ error: 'Email is required' })

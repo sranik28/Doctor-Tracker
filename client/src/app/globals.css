@@ -166,3 +166,33 @@
     transform: translateX(300%);
   }
 }
+
+/* react-phone-number-input: make the country picker and number box look like our Input. */
+.PhoneInput {
+  --PhoneInput-color--focus: var(--ring);
+  --PhoneInputCountryFlag-borderColor: transparent;
+  --PhoneInputCountryFlag-height: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.PhoneInputCountry {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  margin-right: 0;
+  padding: 0 0.5rem;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+}
+.PhoneInputCountry:focus-within {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent);
+}
+.PhoneInputCountrySelect {
+  cursor: pointer;
+}
+.PhoneInputInput {
+  flex: 1;
+  min-width: 0;
+}

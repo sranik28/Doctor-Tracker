@@ -9,9 +9,9 @@ import {
   optionalObjectIdParam,
   optionalParam,
   pageParam,
-  phoneSchema,
   requiredText,
 } from './common.schema';
+import { phoneSchema } from './phone.schema';
 
 export const PATIENT_GENDER_OPTIONS: readonly { value: PatientGender; label: string }[] = [
   { value: 'female', label: 'Female' },

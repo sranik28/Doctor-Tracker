@@ -11,13 +11,6 @@ export const requiredText = (label: string, min: number, max: number) =>
     .min(min, `${label} must be at least ${min} characters`)
     .max(max, `${label} must be at most ${max} characters`);
 
-export const phoneSchema = z
-  .string()
-  .trim()
-  .min(1, 'Phone is required')
-  .regex(/^\+?[\d\s\-()]{7,20}$/, { error: 'Enter a valid phone number', abort: true })
-  .refine((phone) => phone.replace(/\D/g, '').length >= 7, 'Enter a valid phone number');
-
 export const emailSchema = z
   .string()
   .trim()

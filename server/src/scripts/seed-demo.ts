@@ -51,9 +51,9 @@ const isReset = process.argv.includes('--reset');
 
 const demoDoctorFilter = { email: { $regex: `@${DEMO_EMAIL_DOMAIN.replace(/\./g, '\\.')}$` } };
 
-/** Bangladeshi mobile-style number: "+880 1711-123456". */
+/** Bangladeshi mobile number in E.164 form, as the API stores it: "+8801711123456". */
 const phone = (): string =>
-  `+880 1${faker.helpers.arrayElement(['3', '5', '7', '8', '9'])}${faker.string.numeric(2)}-${faker.string.numeric(6)}`;
+  `+8801${faker.helpers.arrayElement(['3', '5', '7', '8', '9'])}${faker.string.numeric(8)}`;
 
 /** More admissions in recent months, with some day-to-day noise: a believable growth curve. */
 const randomAdmissionDate = (now: Date): Date => {

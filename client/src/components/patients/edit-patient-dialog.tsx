@@ -39,6 +39,7 @@ import { type EditPatientValues, editPatientSchema } from '@/schemas/patient.sch
 import type { Patient } from '@/types/patient';
 
 import { PATIENT_FORM_FIELDS, PatientFormFields } from './patient-form-fields';
+import { toE164 } from '@/lib/phone';
 
 const EDIT_FIELDS = [...PATIENT_FORM_FIELDS, 'doctorId'] as const;
 
@@ -46,7 +47,7 @@ const toFormValues = (patient: Patient): EditPatientValues => ({
   name: patient.name,
   age: patient.age,
   gender: patient.gender,
-  phone: patient.phone,
+  phone: toE164(patient.phone),
   condition: patient.condition,
   admittedAt: parseISO(patient.admittedAt),
   notes: patient.notes,
