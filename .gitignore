@@ -19,6 +19,7 @@ coverage/
 # logs
 npm-debug.log*
 *.log
+bun.lock
 
 # os / editor
 .DS_Store
