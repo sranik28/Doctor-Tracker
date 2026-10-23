@@ -23,18 +23,15 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="h-10 gap-2 px-1.5 sm:px-2"
-          aria-label={`${user.name}, account menu`}
-        >
+        <Button variant="ghost" className="h-10 gap-2 px-1.5 sm:px-2">
           <span
             className="flex size-8 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground"
             aria-hidden="true"
           >
             {getInitials(user.name)}
           </span>
-          <span className="hidden max-w-40 truncate text-sm font-medium sm:inline">
+          {/* The visible name is the accessible name (sr-only on phones, where only initials show). */}
+          <span className="sr-only max-w-40 truncate text-sm font-medium sm:not-sr-only">
             {user.name}
           </span>
           <ChevronDown className="hidden text-muted-foreground sm:block" aria-hidden="true" />

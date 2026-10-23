@@ -17,9 +17,9 @@ const TimelineAreaChart = dynamic(
 );
 
 const RANGE_OPTIONS = [
-  { value: '7d', label: '7D', ariaLabel: 'Last 7 days' },
-  { value: '30d', label: '30D', ariaLabel: 'Last 30 days' },
-  { value: '12m', label: '12M', ariaLabel: 'Last 12 months' },
+  { value: '7d', label: '7D', ariaLabel: '7D, last 7 days' },
+  { value: '30d', label: '30D', ariaLabel: '30D, last 30 days' },
+  { value: '12m', label: '12M', ariaLabel: '12M, last 12 months' },
 ] as const;
 
 const DESCRIPTIONS: Record<TimelineRange, string> = {

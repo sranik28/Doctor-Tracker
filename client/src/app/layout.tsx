@@ -1,8 +1,6 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 
-import { Toaster } from '@/components/ui/sonner';
-
 import { Providers } from './providers';
 import './globals.css';
 
@@ -26,11 +24,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    // suppressHydrationWarning: next-themes sets the theme class on <html> before React hydrates.
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
       <body className="flex min-h-full flex-col">
         <Providers>{children}</Providers>
-        {/* The app has no dark theme yet; pin the toasts so they don't follow the OS setting. */}
-        <Toaster theme="light" richColors closeButton position="top-right" />
       </body>
     </html>
   );

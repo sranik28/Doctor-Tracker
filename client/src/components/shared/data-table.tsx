@@ -19,7 +19,14 @@ export interface DataTableColumn<T> {
   cell: (row: T) => ReactNode;
   className?: string;
   headerClassName?: string;
+  /** Hide this column (header and cells) below a breakpoint, to keep the table inside its box. */
+  hideBelow?: 'xl' | '2xl';
 }
+
+const HIDE_BELOW_CLASS = {
+  xl: 'hidden xl:table-cell',
+  '2xl': 'hidden 2xl:table-cell',
+} as const;
 
 interface DataTableProps<T> {
   columns: readonly DataTableColumn<T>[];
@@ -69,7 +76,10 @@ function DataTableRowComponent<T>({ row, columns, onRowClick, label }: DataTable
       )}
     >
       {columns.map((column) => (
-        <TableCell key={column.id} className={column.className}>
+        <TableCell
+          key={column.id}
+          className={cn(column.hideBelow && HIDE_BELOW_CLASS[column.hideBelow], column.className)}
+        >
           {column.cell(row)}
         </TableCell>
       ))}
@@ -113,7 +123,7 @@ export function DataTable<T>({
 
       <div className={cn('transition-opacity duration-200', isRefreshing && 'opacity-60')}>
         {renderMobileCard && (
-          <ul className="grid gap-3 md:hidden" aria-label={caption}>
+          <ul className="grid gap-3 lg:hidden" aria-label={caption}>
             {showSkeleton
               ? Array.from({ length: Math.min(skeletonRows, 5) }, (_, index) => (
                   <li key={index}>
@@ -126,7 +136,7 @@ export function DataTable<T>({
                       <button
                         type="button"
                         onClick={() => onRowClick(row)}
-                        aria-label={getRowLabel?.(row)}
+                        // No aria-label: the card's own text is its accessible name (and its visible label).
                         className="w-full rounded-lg text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                       >
                         {renderMobileCard(row)}
@@ -139,13 +149,19 @@ export function DataTable<T>({
           </ul>
         )}
 
-        <div className={cn('rounded-lg border', renderMobileCard && 'hidden md:block')}>
+        <div className={cn('rounded-lg border', renderMobileCard && 'hidden lg:block')}>
           <Table>
             {caption && <caption className="sr-only">{caption}</caption>}
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 {columns.map((column) => (
-                  <TableHead key={column.id} className={column.headerClassName}>
+                  <TableHead
+                    key={column.id}
+                    className={cn(
+                      column.hideBelow && HIDE_BELOW_CLASS[column.hideBelow],
+                      column.headerClassName,
+                    )}
+                  >
                     {column.header}
                   </TableHead>
                 ))}
@@ -156,7 +172,10 @@ export function DataTable<T>({
                 ? Array.from({ length: skeletonRows }, (_, index) => (
                     <TableRow key={index} className="hover:bg-transparent">
                       {columns.map((column) => (
-                        <TableCell key={column.id}>
+                        <TableCell
+                          key={column.id}
+                          className={column.hideBelow && HIDE_BELOW_CLASS[column.hideBelow]}
+                        >
                           <Skeleton className="h-4 w-full max-w-32" />
                         </TableCell>
                       ))}

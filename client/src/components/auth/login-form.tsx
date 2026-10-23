@@ -105,7 +105,7 @@ export function LoginForm() {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="absolute top-1/2 right-1 size-7 -translate-y-1/2 text-muted-foreground"
+                  className="absolute top-1/2 right-1 size-7 -translate-y-1/2 text-muted-foreground pointer-coarse:right-0 pointer-coarse:size-10"
                   onClick={() => setShowPassword((visible) => !visible)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                   aria-pressed={showPassword}

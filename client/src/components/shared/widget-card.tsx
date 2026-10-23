@@ -89,7 +89,9 @@ export function WidgetCard({
   return (
     <Card className={cn('min-w-0', className)}>
       <CardHeader>
-        <CardTitle className="text-base">{title}</CardTitle>
+        <CardTitle as="h2" className="text-base">
+          {title}
+        </CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
         {action && <CardAction>{action}</CardAction>}
       </CardHeader>

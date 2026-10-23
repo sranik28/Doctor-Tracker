@@ -44,7 +44,7 @@ export function Pagination({
   return (
     <div
       className={cn(
-        'flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between',
+        'flex flex-col-reverse gap-3 xl:flex-row xl:items-center xl:justify-between',
         className,
       )}
     >
@@ -73,7 +73,7 @@ export function Pagination({
 
       <nav
         aria-label="Pagination"
-        className="flex items-center justify-between gap-1 sm:justify-end"
+        className="flex items-center justify-between gap-1 xl:justify-end"
       >
         <Button
           variant="outline"
@@ -83,7 +83,7 @@ export function Pagination({
           aria-label="Previous page"
         >
           <ChevronLeft aria-hidden="true" />
-          <span className="sm:sr-only">Prev</span>
+          <span className="sm:sr-only">Previous</span>
         </Button>
 
         <span className="text-sm text-muted-foreground tabular-nums sm:hidden">

@@ -23,9 +23,9 @@ export function LoginBrandPanel() {
       <AppLogo inverted />
 
       <div className="grid max-w-md gap-3 lg:gap-6">
-        <h2 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl lg:text-4xl">
+        <p className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl lg:text-4xl">
           Care teams, organised.
-        </h2>
+        </p>
         <p className="text-sm text-primary-foreground/70 sm:text-base">
           Manage doctors, track patients and keep an eye on admissions from a single dashboard.
         </p>

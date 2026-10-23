@@ -32,9 +32,14 @@ function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<'div'>) {
+interface CardTitleProps extends React.ComponentProps<'div'> {
+  /** Renders a heading element so the page has a proper outline. Plain div when omitted. */
+  as?: 'div' | 'h2' | 'h3';
+}
+
+function CardTitle({ as: Heading = 'div', className, ...props }: CardTitleProps) {
   return (
-    <div
+    <Heading
       data-slot="card-title"
       className={cn(
         'font-heading text-base leading-snug font-medium group-data-[size=sm]/card:text-sm',

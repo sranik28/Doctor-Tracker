@@ -74,7 +74,7 @@ function PatientCard({ patient, showDoctor, onEdit, onDelete }: PatientCardProps
     <article className="grid gap-3 rounded-lg border bg-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="grid min-w-0 gap-1">
-          <h3 className="truncate font-medium">{patient.name}</h3>
+          <p className="truncate font-medium">{patient.name}</p>
           <p className="text-sm text-muted-foreground">
             {patient.age} yrs · {capitalize(patient.gender)}
           </p>
@@ -140,7 +140,12 @@ export function PatientsTable({
         className: 'text-right tabular-nums',
         cell: (patient) => patient.age,
       },
-      { id: 'gender', header: 'Gender', cell: (patient) => capitalize(patient.gender) },
+      {
+        id: 'gender',
+        header: 'Gender',
+        hideBelow: 'xl',
+        cell: (patient) => capitalize(patient.gender),
+      },
       {
         id: 'condition',
         header: 'Condition',
@@ -158,6 +163,7 @@ export function PatientsTable({
       {
         id: 'phone',
         header: 'Phone',
+        hideBelow: 'xl',
         cell: (patient) => <span className="whitespace-nowrap tabular-nums">{patient.phone}</span>,
       },
       {

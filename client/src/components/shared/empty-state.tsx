@@ -7,10 +7,19 @@ interface EmptyStateProps {
   title: string;
   description?: string;
   action?: ReactNode;
+  /** Use h1 when this is the main content of the page (404, error screens). */
+  headingLevel?: 'h1' | 'h2';
   className?: string;
 }
 
-export function EmptyState({ icon: Icon, title, description, action, className }: EmptyStateProps) {
+export function EmptyState({
+  icon: Icon,
+  title,
+  description,
+  action,
+  headingLevel: Heading = 'h2',
+  className,
+}: EmptyStateProps) {
   return (
     <div
       className={cn(
@@ -24,7 +33,7 @@ export function EmptyState({ icon: Icon, title, description, action, className }
         </span>
       )}
       <div className="grid max-w-sm gap-1">
-        <h2 className="text-base font-semibold">{title}</h2>
+        <Heading className="text-base font-semibold">{title}</Heading>
         {description && <p className="text-sm text-muted-foreground">{description}</p>}
       </div>
       {action}

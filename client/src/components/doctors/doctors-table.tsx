@@ -32,6 +32,7 @@ const COLUMNS: readonly DataTableColumn<DoctorListItem>[] = [
   {
     id: 'email',
     header: 'Email',
+    hideBelow: 'xl',
     cell: (doctor) => <span className="text-muted-foreground">{doctor.email}</span>,
   },
   {
@@ -44,6 +45,7 @@ const COLUMNS: readonly DataTableColumn<DoctorListItem>[] = [
   {
     id: 'createdAt',
     header: 'Added',
+    hideBelow: '2xl',
     cell: (doctor) => (
       <time dateTime={doctor.createdAt} className="whitespace-nowrap text-muted-foreground">
         {formatDate(doctor.createdAt)}
@@ -64,7 +66,7 @@ function DoctorCard({ doctor }: { doctor: DoctorListItem }) {
     <article className="grid gap-3 rounded-lg border bg-card p-4 transition-colors hover:bg-muted/40">
       <div className="flex items-start justify-between gap-3">
         <div className="grid min-w-0 gap-1">
-          <h3 className="truncate font-medium">{doctor.name}</h3>
+          <p className="truncate font-medium">{doctor.name}</p>
           <Badge variant="secondary" className="w-fit">
             {doctor.specialization}
           </Badge>

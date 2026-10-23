@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, SearchX, UserRound } from 'lucide-react';
+import { AlertTriangle, Plus, SearchX, UserRound } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -28,7 +28,7 @@ interface DoctorPatientsSectionProps {
 
 export function DoctorPatientsSection({ doctorId, doctorName }: DoctorPatientsSectionProps) {
   const { filters, setFilters, setPage } = useUrlFilters(patientListFiltersSchema);
-  const { data, isLoading, isFetching, isPlaceholderData } = useDoctorPatients(
+  const { data, isLoading, isFetching, isError, isPlaceholderData, refetch } = useDoctorPatients(
     doctorId,
     filters,
     true,
@@ -118,14 +118,27 @@ export function DoctorPatientsSection({ doctorId, doctorName }: DoctorPatientsSe
         </div>
       </div>
 
-      <PatientsTable
-        patients={data?.items}
-        isLoading={isLoading}
-        isFetching={isFetching}
-        skeletonRows={Math.min(filters.limit, 5)}
-        emptyState={emptyState}
-        onDelete={requestDelete}
-      />
+      {isError && !data ? (
+        <EmptyState
+          icon={AlertTriangle}
+          title="Couldn't load patients"
+          description="Check your connection and try again."
+          action={
+            <Button variant="outline" onClick={() => void refetch()}>
+              Try again
+            </Button>
+          }
+        />
+      ) : (
+        <PatientsTable
+          patients={data?.items}
+          isLoading={isLoading}
+          isFetching={isFetching}
+          skeletonRows={Math.min(filters.limit, 5)}
+          emptyState={emptyState}
+          onDelete={requestDelete}
+        />
+      )}
 
       {data && (
         <Pagination

@@ -1,28 +1,19 @@
 'use client';
 
-import { AlertTriangle, ArrowLeft, UserX } from 'lucide-react';
+import { AlertTriangle, UserX } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 
 import { DoctorPatientsSection } from '@/components/patients/doctor-patients-section';
+import { Breadcrumbs } from '@/components/shared/breadcrumbs';
 import { EmptyState } from '@/components/shared/empty-state';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useDoctor } from '@/hooks/use-doctor';
 import { getApiErrorStatus } from '@/lib/api-error';
 import { isObjectId } from '@/schemas/common.schema';
 
 import { DoctorProfileCard, DoctorProfileCardSkeleton } from './doctor-profile-card';
-
-function BackToDoctors() {
-  return (
-    <Button variant="ghost" size="sm" className="-ml-2 w-fit text-muted-foreground" asChild>
-      <Link href="/doctors">
-        <ArrowLeft aria-hidden="true" />
-        Back to doctors
-      </Link>
-    </Button>
-  );
-}
 
 export function DoctorDetailView() {
   const { id } = useParams<{ id: string }>();
@@ -35,7 +26,7 @@ export function DoctorDetailView() {
   if (isNotFound) {
     return (
       <div className="grid grid-cols-1 gap-4">
-        <BackToDoctors />
+        <Breadcrumbs items={[{ label: 'Doctors', href: '/doctors' }, { label: 'Not found' }]} />
         <EmptyState
           icon={UserX}
           title="Doctor not found"
@@ -53,7 +44,7 @@ export function DoctorDetailView() {
   if (isError && !doctor) {
     return (
       <div className="grid grid-cols-1 gap-4">
-        <BackToDoctors />
+        <Breadcrumbs items={[{ label: 'Doctors', href: '/doctors' }, { label: 'Error' }]} />
         <EmptyState
           icon={AlertTriangle}
           title="Couldn't load this doctor"
@@ -70,7 +61,11 @@ export function DoctorDetailView() {
 
   return (
     <div className="grid grid-cols-1 gap-6">
-      <BackToDoctors />
+      {/* Hoisted into <head> by React; the static metadata title covers the loading moment. */}
+      {doctor && <title>{`${doctor.name} | Doctor Tracker`}</title>}
+      <Breadcrumbs
+        items={[{ label: 'Doctors', href: '/doctors' }, { label: doctor?.name ?? 'Doctor' }]}
+      />
       {doctor ? <DoctorProfileCard doctor={doctor} /> : <DoctorProfileCardSkeleton />}
       {/* Mounted right away so patients load in parallel with the doctor, not after it. */}
       <DoctorPatientsSection doctorId={id} doctorName={doctor?.name} />
@@ -81,7 +76,7 @@ export function DoctorDetailView() {
 export function DoctorDetailSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-6">
-      <div className="h-8" />
+      <Skeleton className="h-5 w-40" />
       <DoctorProfileCardSkeleton />
     </div>
   );

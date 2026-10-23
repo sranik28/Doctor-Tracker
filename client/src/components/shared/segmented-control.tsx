@@ -35,11 +35,11 @@ export function SegmentedControl<T extends string>({
             aria-pressed={isActive}
             aria-label={option.ariaLabel}
             className={cn(
-              'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+              'rounded-md px-2.5 py-1 text-xs font-medium transition-colors pointer-coarse:min-h-10 pointer-coarse:min-w-10',
               'focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
               isActive
                 ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
+                : 'text-foreground/70 hover:text-foreground',
             )}
           >
             {option.label}
