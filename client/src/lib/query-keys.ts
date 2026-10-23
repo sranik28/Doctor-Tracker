@@ -1,3 +1,4 @@
+import type { TimelineRange } from '@/types/dashboard';
 import type { DoctorListFilters } from '@/schemas/doctor.schema';
 import type { PatientListFilters, PatientsPageFilters } from '@/schemas/patient.schema';
 
@@ -20,4 +21,15 @@ export const patientKeys = {
   lists: () => [...patientKeys.all, 'list'] as const,
   list: (filters: PatientsPageFilters) => [...patientKeys.lists(), filters] as const,
   filterOptions: () => [...patientKeys.all, 'filter-options'] as const,
+};
+
+export const dashboardKeys = {
+  all: ['dashboard'] as const,
+  stats: () => [...dashboardKeys.all, 'stats'] as const,
+  timeline: (range: TimelineRange) => [...dashboardKeys.all, 'timeline', range] as const,
+  patientsPerDoctor: (limit: number) =>
+    [...dashboardKeys.all, 'patients-per-doctor', limit] as const,
+  conditions: () => [...dashboardKeys.all, 'conditions'] as const,
+  specializations: () => [...dashboardKeys.all, 'specializations'] as const,
+  recentPatients: (limit: number) => [...dashboardKeys.all, 'recent-patients', limit] as const,
 };
