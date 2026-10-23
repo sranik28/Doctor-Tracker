@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-import type { ApiErrorResponse } from '@/types/api';
+import type { ApiErrorBody, ApiErrorResponse } from '@/types/api';
 
 const isApiErrorResponse = (value: unknown): value is ApiErrorResponse =>
   typeof value === 'object' &&
@@ -8,6 +8,13 @@ const isApiErrorResponse = (value: unknown): value is ApiErrorResponse =>
   'success' in value &&
   value.success === false &&
   'error' in value;
+
+/** The `error` object of an API error response, if this is one. */
+export const getApiErrorBody = (error: unknown): ApiErrorBody | undefined => {
+  if (!axios.isAxiosError(error)) return undefined;
+  const body: unknown = error.response?.data;
+  return isApiErrorResponse(body) ? body.error : undefined;
+};
 
 export const getApiErrorStatus = (error: unknown): number | undefined =>
   axios.isAxiosError(error) ? error.response?.status : undefined;

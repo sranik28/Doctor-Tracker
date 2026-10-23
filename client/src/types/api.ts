@@ -11,6 +11,17 @@ export interface ApiSuccessResponse<T> {
   meta?: PaginationMeta;
 }
 
+export interface ApiPaginatedResponse<T> {
+  success: true;
+  data: T[];
+  meta: PaginationMeta;
+}
+
+export interface PaginatedResult<T> {
+  items: T[];
+  meta: PaginationMeta;
+}
+
 export interface ApiErrorBody {
   code: string;
   message: string;

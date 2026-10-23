@@ -1,4 +1,7 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
+
+import { DoctorsView, DoctorsViewSkeleton } from '@/components/doctors/doctors-view';
 
 export const metadata: Metadata = {
   title: 'Doctors',
@@ -6,8 +9,9 @@ export const metadata: Metadata = {
 
 export default function DoctorsPage() {
   return (
-    <section>
-      <h1 className="text-2xl font-semibold tracking-tight">Doctors</h1>
-    </section>
+    // Filters are read from the URL (useSearchParams), which needs a Suspense boundary.
+    <Suspense fallback={<DoctorsViewSkeleton />}>
+      <DoctorsView />
+    </Suspense>
   );
 }

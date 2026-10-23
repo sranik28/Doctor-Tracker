@@ -19,7 +19,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <AppSidebar />
         <div className="flex min-h-svh flex-col md:pl-64">
           <TopBar />
-          <main className="flex-1 p-4 md:p-6">{children}</main>
+          <main className="min-w-0 flex-1 p-4 md:p-6">{children}</main>
         </div>
       </div>
     </AuthGuard>
