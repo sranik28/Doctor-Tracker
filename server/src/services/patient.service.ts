@@ -9,6 +9,9 @@ import { toTextSearch } from '../utils/text-search.js';
 import type {
   CreatePatientInput,
   ListDoctorPatientsQuery,
+  ListPatientsQuery,
+  PatientSort,
+  UpdatePatientInput,
 } from '../validations/patient.validation.js';
 import { assertDoctorExists } from './doctor.service.js';
 
@@ -105,6 +108,135 @@ export const removePatientFromDoctor = async (
   ).lean<{ _id: Types.ObjectId }>();
 
   if (!deleted) throw ApiError.notFound('Patient not found for this doctor');
+
+  return { _id: deleted._id };
+};
+
+// ---- Patients module (all patients, across doctors) ----
+
+interface DoctorSummary {
+  _id: Types.ObjectId;
+  name: string;
+  specialization: string;
+}
+
+export type PatientWithDoctor = PatientFields & { doctor: DoctorSummary | null };
+
+// One extra query per request (doctor ids batched with $in), never one per patient.
+const DOCTOR_POPULATE = { path: 'doctor', select: '_id name specialization' } as const;
+
+const PATIENT_SORT_STAGES: Record<PatientSort, Record<string, 1 | -1>> = {
+  admittedAt: { admittedAt: 1 },
+  '-admittedAt': { admittedAt: -1 },
+  name: { name: 1 },
+  '-name': { name: -1 },
+  age: { age: 1 },
+  '-age': { age: -1 },
+  createdAt: { createdAt: 1 },
+  '-createdAt': { createdAt: -1 },
+};
+
+/**
+ * Equality filters (condition / doctorId) + admittedAt range/sort line up with the
+ * { condition, admittedAt } and { doctorId, admittedAt } compound indexes.
+ */
+export const buildPatientFilter = ({
+  search,
+  condition,
+  doctorId,
+  gender,
+  from,
+  to,
+}: Pick<
+  ListPatientsQuery,
+  'search' | 'condition' | 'doctorId' | 'gender' | 'from' | 'to'
+>): QueryFilter<Patient> => {
+  const filter: QueryFilter<Patient> = {};
+  const textSearch = toTextSearch(search);
+
+  if (textSearch) filter.$text = { $search: textSearch };
+  if (condition) filter.condition = condition;
+  if (doctorId) filter.doctorId = doctorId;
+  if (gender) filter.gender = gender;
+  if (from || to) {
+    filter.admittedAt = { ...(from && { $gte: from }), ...(to && { $lte: to }) };
+  }
+
+  return filter;
+};
+
+export const listPatients = async (
+  query: ListPatientsQuery,
+): Promise<{ patients: PatientWithDoctor[]; meta: PaginationMeta }> => {
+  const filter = buildPatientFilter(query);
+
+  const [patients, total] = await Promise.all([
+    PatientModel.find(filter, PATIENT_PROJECTION)
+      .sort(PATIENT_SORT_STAGES[query.sort])
+      .skip(getSkip(query))
+      .limit(query.limit)
+      .populate(DOCTOR_POPULATE)
+      .lean<PatientWithDoctor[]>(),
+    // countDocuments({}) scans the collection; with no filter, read the stored count instead.
+    Object.keys(filter).length === 0
+      ? PatientModel.estimatedDocumentCount()
+      : PatientModel.countDocuments(filter),
+  ]);
+
+  return { patients, meta: buildPaginationMeta(query, total) };
+};
+
+export const getPatientFilterOptions = async (): Promise<{ conditions: string[] }> => {
+  const conditions = await PatientModel.distinct('condition');
+  return {
+    conditions: conditions
+      .filter((value): value is string => typeof value === 'string')
+      .sort((a, b) => a.localeCompare(b)),
+  };
+};
+
+export const getPatientById = async (patientId: string): Promise<PatientWithDoctor> => {
+  const patient = await PatientModel.findById(patientId, PATIENT_PROJECTION)
+    .populate(DOCTOR_POPULATE)
+    .lean<PatientWithDoctor>();
+
+  if (!patient) throw ApiError.notFound('Patient not found');
+
+  return patient;
+};
+
+export const updatePatient = async (
+  patientId: string,
+  input: UpdatePatientInput,
+): Promise<PatientWithDoctor> => {
+  if (input.doctorId && !(await DoctorModel.exists({ _id: input.doctorId }))) {
+    throw new ApiError(400, 'INVALID_DOCTOR', 'Doctor not found', { field: 'doctorId' });
+  }
+
+  // Only fields that were actually sent are changed.
+  const changes = Object.fromEntries(
+    Object.entries(input).filter(([, value]) => value !== undefined),
+  );
+
+  const patient = await PatientModel.findByIdAndUpdate(
+    patientId,
+    { $set: changes },
+    { returnDocument: 'after', runValidators: true, projection: PATIENT_PROJECTION },
+  )
+    .populate(DOCTOR_POPULATE)
+    .lean<PatientWithDoctor>();
+
+  if (!patient) throw ApiError.notFound('Patient not found');
+
+  return patient;
+};
+
+export const deletePatient = async (patientId: string): Promise<{ _id: Types.ObjectId }> => {
+  const deleted = await PatientModel.findByIdAndDelete(patientId, {
+    projection: { _id: 1 },
+  }).lean<{ _id: Types.ObjectId }>();
+
+  if (!deleted) throw ApiError.notFound('Patient not found');
 
   return { _id: deleted._id };
 };

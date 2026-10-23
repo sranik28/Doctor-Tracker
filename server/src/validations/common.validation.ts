@@ -26,6 +26,10 @@ export const optionalQueryString = (maxLength: number) =>
     z.string().trim().max(maxLength).optional(),
   );
 
+/** Optional query param of any schema: blank values count as "not provided". */
+export const optionalQueryParam = <T extends z.ZodType>(schema: T) =>
+  z.preprocess((value) => (value === '' ? undefined : value), schema.optional());
+
 export const requiredText = (label: string, min: number, max: number) =>
   z
     .string({ error: `${label} is required` })

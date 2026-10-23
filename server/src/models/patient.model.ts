@@ -33,13 +33,32 @@ const patientSchema = new Schema<Patient>(
   { timestamps: true, toJSON: { versionKey: false } },
 );
 
+/**
+ * The assigned doctor's summary, loaded with `.populate('doctor')`. A virtual (rather than
+ * populating doctorId itself) so doctorId always stays a plain id in responses.
+ */
+patientSchema.virtual('doctor', {
+  ref: 'Doctor',
+  localField: 'doctorId',
+  foreignField: '_id',
+  justOne: true,
+});
+
 // A doctor's patients, newest first (also backs per-doctor counts).
 patientSchema.index({ doctorId: 1, createdAt: -1 });
+// Patients list filtered by doctor, sorted by admission date (the list's default sort).
+// Without it MongoDB finds the doctor's patients via doctorId_createdAt and sorts in memory.
+patientSchema.index({ doctorId: 1, admittedAt: -1 });
 // Filter by condition, sorted by admission date.
 patientSchema.index({ condition: 1, admittedAt: -1 });
 // Admissions over time (charts, date-range filters).
 patientSchema.index({ admittedAt: -1 });
+// Gender filter. Low selectivity, but without it the list's countDocuments({ gender })
+// scans the whole collection; with it the count is an index-only COUNT_SCAN.
+patientSchema.index({ gender: 1, admittedAt: -1 });
 // Search box.
 patientSchema.index({ name: 'text' }, { name: 'patient_text_search' });
+// Sort A–Z / Z–A without scanning and sorting the whole collection.
+patientSchema.index({ name: 1 });
 
 export const PatientModel = model<Patient>('Patient', patientSchema);
