@@ -7,6 +7,10 @@ import {
   listPatients,
   updatePatient,
 } from '../controllers/patient.controller.js';
+import {
+  createPrescription,
+  listPatientPrescriptions,
+} from '../controllers/prescription.controller.js';
 import { authenticate } from '../middlewares/auth.js';
 import { authorize } from '../middlewares/authorize.js';
 import { validate } from '../middlewares/validate.js';
@@ -15,6 +19,10 @@ import {
   patientIdParamsSchema,
   updatePatientSchema,
 } from '../validations/patient.validation.js';
+import {
+  createPrescriptionSchema,
+  listPrescriptionsQuerySchema,
+} from '../validations/prescription.validation.js';
 
 export const patientRouter = Router();
 
@@ -32,3 +40,14 @@ patientRouter.patch(
   updatePatient,
 );
 patientRouter.delete('/:id', validate({ params: patientIdParamsSchema }), deletePatient);
+
+patientRouter.get(
+  '/:id/prescriptions',
+  validate({ params: patientIdParamsSchema, query: listPrescriptionsQuerySchema }),
+  listPatientPrescriptions,
+);
+patientRouter.post(
+  '/:id/prescriptions',
+  validate({ params: patientIdParamsSchema, body: createPrescriptionSchema }),
+  createPrescription,
+);

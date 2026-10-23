@@ -4,6 +4,7 @@ import type { Types } from 'mongoose';
 import { connectDB, disconnectDB } from '../config/db.js';
 import { DoctorModel } from '../models/doctor.model.js';
 import { PATIENT_GENDERS, PatientModel } from '../models/patient.model.js';
+import { PrescriptionModel } from '../models/prescription.model.js';
 
 /** Demo doctors are the only ones on this domain, which is how --reset finds them. */
 const DEMO_EMAIL_DOMAIN = 'demo.doctortracker.dev';
@@ -67,9 +68,38 @@ const randomAdmissionDate = (now: Date): Date => {
     : date;
 };
 
+const MEDICINES = [
+  'Paracetamol',
+  'Amoxicillin',
+  'Metformin',
+  'Amlodipine',
+  'Omeprazole',
+  'Cetirizine',
+  'Salbutamol inhaler',
+  'Ibuprofen',
+  'Atorvastatin',
+  'Azithromycin',
+] as const;
+const DOSAGES = [
+  '500 mg, twice a day',
+  '250 mg, three times a day',
+  '10 mg, once a day',
+  '1 puff, as needed',
+];
+const DURATIONS = ['3 days', '5 days', '7 days', '14 days', '1 month'];
+const INSTRUCTIONS = [
+  'After meals',
+  'Before bed',
+  'With plenty of water',
+  'On an empty stomach',
+  '',
+];
+
 const resetDemoData = async (): Promise<void> => {
   const demoDoctors = await DoctorModel.find(demoDoctorFilter, { _id: 1 }).lean();
   const ids = demoDoctors.map((doctor) => doctor._id);
+  const demoPatients = await PatientModel.find({ doctorId: { $in: ids } }, { _id: 1 }).lean();
+  await PrescriptionModel.deleteMany({ patientId: { $in: demoPatients.map(({ _id }) => _id) } });
   const patients = await PatientModel.deleteMany({ doctorId: { $in: ids } });
   const doctors = await DoctorModel.deleteMany({ _id: { $in: ids } });
   console.info(
@@ -121,6 +151,32 @@ const createPatients = async (doctorIds: Types.ObjectId[], now: Date): Promise<n
     };
   });
   const inserted = await PatientModel.insertMany(patients, { timestamps: false });
+
+  // About a third of patients have 1-3 prescriptions from their doctor, after admission.
+  const prescriptions = inserted
+    .filter(() => faker.datatype.boolean(0.33))
+    .flatMap((patient) =>
+      Array.from({ length: faker.number.int({ min: 1, max: 3 }) }, () => {
+        const prescribedAt = new Date(
+          Math.min(
+            now.getTime(),
+            patient.admittedAt.getTime() + faker.number.int({ min: 1, max: 72 }) * 3_600_000,
+          ),
+        );
+        return {
+          patientId: patient._id,
+          doctorId: patient.doctorId,
+          medicine: faker.helpers.arrayElement(MEDICINES),
+          dosage: faker.helpers.arrayElement(DOSAGES),
+          duration: faker.helpers.arrayElement(DURATIONS),
+          instructions: faker.helpers.arrayElement(INSTRUCTIONS),
+          prescribedAt,
+          createdAt: prescribedAt,
+          updatedAt: prescribedAt,
+        };
+      }),
+    );
+  await PrescriptionModel.insertMany(prescriptions, { timestamps: false });
   return inserted.length;
 };
 
@@ -129,7 +185,11 @@ const run = async (): Promise<void> => {
   await connectDB();
 
   try {
-    await Promise.all([DoctorModel.syncIndexes(), PatientModel.syncIndexes()]);
+    await Promise.all([
+      DoctorModel.syncIndexes(),
+      PatientModel.syncIndexes(),
+      PrescriptionModel.syncIndexes(),
+    ]);
 
     if (isReset) {
       await resetDemoData();

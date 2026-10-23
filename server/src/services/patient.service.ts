@@ -15,6 +15,7 @@ import type {
 } from '../validations/patient.validation.js';
 import { assertDoctorExists } from './doctor.service.js';
 import { getHospitalDoctorIds, patientScopeMatch } from './hospital-scope.service.js';
+import { deletePrescriptionsForPatient } from './prescription.service.js';
 
 type PatientFields = Pick<
   Patient,
@@ -110,6 +111,7 @@ export const removePatientFromDoctor = async (
 
   if (!deleted) throw ApiError.notFound('Patient not found for this doctor');
 
+  await deletePrescriptionsForPatient(deleted._id);
   return { _id: deleted._id };
 };
 
@@ -249,6 +251,7 @@ export const deletePatient = async (patientId: string): Promise<{ _id: Types.Obj
 
   if (!deleted) throw ApiError.notFound('Patient not found');
 
+  await deletePrescriptionsForPatient(deleted._id);
   return { _id: deleted._id };
 };
 

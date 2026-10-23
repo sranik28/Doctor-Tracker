@@ -2,6 +2,7 @@ import { connectDB, disconnectDB } from '../config/db.js';
 import { env } from '../config/env.js';
 import { DoctorModel } from '../models/doctor.model.js';
 import { PatientModel } from '../models/patient.model.js';
+import { PrescriptionModel } from '../models/prescription.model.js';
 import { UserModel } from '../models/user.model.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
 
@@ -13,8 +14,9 @@ const syncIndexes = async (): Promise<void> => {
     UserModel.syncIndexes(),
     DoctorModel.syncIndexes(),
     PatientModel.syncIndexes(),
+    PrescriptionModel.syncIndexes(),
   ]);
-  console.info('[seed] Indexes synced for users, doctors, patients');
+  console.info('[seed] Indexes synced for users, doctors, patients, prescriptions');
 };
 
 /**
