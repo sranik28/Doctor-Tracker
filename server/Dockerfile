@@ -3,9 +3,8 @@
 # ---- Stage 1: all dependencies + compile TypeScript ----------------------------------------
 FROM oven/bun:1-slim AS build
 WORKDIR /app
-# bun.lock is optional: it is git-ignored in this repo, so a clean clone won't have one.
-COPY package.json bun.lock* ./
-RUN bun install
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 RUN bun run build
@@ -13,9 +12,9 @@ RUN bun run build
 # ---- Stage 2: production dependencies only --------------------------------------------------
 FROM oven/bun:1-slim AS prod-deps
 WORKDIR /app
-COPY package.json bun.lock* ./
+COPY package.json bun.lock ./
 # bcrypt ships prebuilt binaries for glibc (this image), so no compiler is needed.
-RUN bun install --production
+RUN bun install --frozen-lockfile --production
 
 # ---- Stage 3: small runtime image -----------------------------------------------------------
 FROM node:22-slim AS runtime
