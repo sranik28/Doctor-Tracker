@@ -39,7 +39,8 @@ prescriptionSchema.virtual('doctor', {
   justOne: true,
 });
 
-// A patient's prescriptions, newest first (the only way they are listed).
-prescriptionSchema.index({ patientId: 1, prescribedAt: -1 });
+// A patient's prescriptions, newest first (the only way they are listed). _id breaks ties so
+// the whole sort comes from the index.
+prescriptionSchema.index({ patientId: 1, prescribedAt: -1, _id: -1 });
 
 export const PrescriptionModel = model<Prescription>('Prescription', prescriptionSchema);

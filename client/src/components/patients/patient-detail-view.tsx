@@ -30,6 +30,8 @@ import { isObjectId } from '@/schemas/common.schema';
 
 import { ConditionBadge } from './condition-badge';
 import { EditPatientDialog } from './edit-patient-dialog';
+import { PatientNotesCard } from './patient-notes-card';
+import { PrescriptionsSection } from './prescriptions-section';
 
 const LIST_CRUMB = { label: 'Patients', href: '/patients' };
 
@@ -179,16 +181,9 @@ export function PatientDetailView() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="grid gap-2">
-          <h2 className="text-lg font-semibold">Notes</h2>
-          {patient.notes ? (
-            <p className="text-sm whitespace-pre-wrap">{patient.notes}</p>
-          ) : (
-            <p className="text-sm text-muted-foreground">No notes for this patient.</p>
-          )}
-        </CardContent>
-      </Card>
+      <PatientNotesCard patient={patient} />
+
+      <PrescriptionsSection patientId={patient._id} />
 
       {patient.doctor && (
         <p className="text-sm text-muted-foreground">

@@ -3,6 +3,7 @@ import type { Types } from 'mongoose';
 import { connectDB, disconnectDB } from '../config/db.js';
 import { DoctorModel } from '../models/doctor.model.js';
 import { PatientModel } from '../models/patient.model.js';
+import { PrescriptionModel } from '../models/prescription.model.js';
 import {
   buildConditionsPipeline,
   buildPatientsPerDoctorPipeline,
@@ -19,6 +20,7 @@ import {
   DOCTOR_PROJECTION,
   DOCTOR_SORT_STAGES,
 } from '../services/doctor.service.js';
+import { PRESCRIPTION_SORT } from '../services/prescription.service.js';
 import { getHospitalDoctorIds } from '../services/hospital-scope.service.js';
 import {
   PUBLIC_DOCTOR_PROJECTION,
@@ -106,7 +108,7 @@ const summarize = (query: string, raw: unknown): Row => {
 
 const explainFind = async (
   query: string,
-  model: typeof DoctorModel | typeof PatientModel,
+  model: typeof DoctorModel | typeof PatientModel | typeof PrescriptionModel,
   filter: Record<string, unknown>,
   projection: Record<string, 1>,
   sort: Record<string, 1 | -1>,
@@ -324,6 +326,18 @@ const run = async (): Promise<void> => {
       }),
     ];
 
+    // A patient's prescriptions on the profile page (uses a patient that has some).
+    const prescribed = await PrescriptionModel.findOne({}, { patientId: 1 }).lean();
+    const prescriptionRows: Row[] = [
+      await explainFind(
+        "prescriptions: a patient's list (newest first)",
+        PrescriptionModel,
+        prescribed ? { patientId: prescribed.patientId } : {},
+        { medicine: 1, dosage: 1, duration: 1, instructions: 1, prescribedAt: 1, doctorId: 1 },
+        PRESCRIPTION_SORT,
+      ),
+    ];
+
     // The hospital switcher: patients are scoped through that hospital's doctor ids.
     const hospital = 'Square Hospital';
     const hospitalDoctorIds = await getHospitalDoctorIds(hospital);
@@ -385,6 +399,7 @@ const run = async (): Promise<void> => {
     printTable('Patients', patientRows);
     printTable('Dashboard', dashboardRows);
     printTable('Hospital switcher (scoped to one hospital)', hospitalRows);
+    printTable('Prescriptions', prescriptionRows);
     printTable('Documented trade-offs (intentionally not indexed)', tradeoffRows);
 
     const failures = [
@@ -393,6 +408,7 @@ const run = async (): Promise<void> => {
       ...patientRows,
       ...dashboardRows,
       ...hospitalRows,
+      ...prescriptionRows,
     ].filter((row) => row.collscan);
     console.log('');
     if (failures.length > 0) {
@@ -405,7 +421,7 @@ const run = async (): Promise<void> => {
       process.exitCode = 1;
     } else {
       console.log(
-        `OK: none of the ${doctorRows.length + publicRows.length + patientRows.length + dashboardRows.length + hospitalRows.length} key queries use COLLSCAN.`,
+        `OK: none of the ${doctorRows.length + publicRows.length + patientRows.length + dashboardRows.length + hospitalRows.length + prescriptionRows.length} key queries use COLLSCAN.`,
       );
     }
   } finally {

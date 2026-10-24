@@ -8,6 +8,7 @@ Hospital admins need to answer three questions quickly: _who are our doctors, wh
 
 - **Public directory** (no login): anyone can find a doctor by name, hospital or specialization and open a profile. It shows only name, specialization and hospital, never contact details or patient data.
 - **Hospital switcher**: pick a hospital in the sidebar and the dashboard, doctors and patients all narrow to it (or stay on "All hospitals").
+- **Patient profile**: each patient has a page with their details, editable notes, and the prescriptions the doctor gave (add, edit, delete).
 - **Doctors**: searchable, filterable, sortable directory; each doctor has a detail page listing their patients, where patients can be admitted or removed.
 - **Patients**: a hospital-wide patient list with search, condition/gender/doctor/date filters, sorting, edit and delete.
 - **Dashboard**: headline numbers, admissions over time, workload per doctor, condition mix and specialization mix, each chart with an accessible table view.
@@ -240,6 +241,10 @@ Base path `/api`. Every response uses one envelope: `{ success: true, data, meta
 | GET    | `/patients`                        | list; `search`, `condition`, `gender`, `doctorId`, `hospital`, `from`, `to`, `sort`, `page`, `limit`         |
 | GET    | `/patients/filters/options`        | conditions for filter dropdowns                                                                              |
 | GET    | `/patients/:id`                    | one patient with their doctor                                                                                |
+| GET    | `/patients/:id/prescriptions`      | a patient's prescriptions, newest first (`limit`, default 50, max 100)                                       |
+| POST   | `/patients/:id/prescriptions`      | record a prescription (the patient's doctor is the prescriber)                                               |
+| PATCH  | `/prescriptions/:id`               | edit a prescription                                                                                          |
+| DELETE | `/prescriptions/:id`               | delete a prescription                                                                                        |
 | PATCH  | `/patients/:id`                    | update a patient (including reassigning the doctor)                                                          |
 | DELETE | `/patients/:id`                    | delete a patient                                                                                             |
 | GET    | `/dashboard/stats`                 | totals and this-month vs last-month figures (all `/dashboard/*` routes accept an optional `hospital`)        |
@@ -316,47 +321,48 @@ Embedding only wins on "read one doctor with all patients", and that screen is p
 
 **Index strategy**
 
-| Collection | Index                                                        | Serves                                                         |
-| ---------- | ------------------------------------------------------------ | -------------------------------------------------------------- |
-| `patients` | `{ doctorId: 1, createdAt: -1 }`                             | a doctor's patients (newest first), per-doctor counts          |
-|            | `{ doctorId: 1, admittedAt: -1 }`                            | patient list filtered by doctor                                |
-|            | `{ condition: 1, admittedAt: -1 }`                           | condition filter, conditions chart                             |
-|            | `{ gender: 1, admittedAt: -1 }`                              | gender filter and its count                                    |
-|            | `{ admittedAt: -1 }`                                         | default list order, date ranges, timeline, recent patients     |
-|            | `{ name: 1 }`                                                | A–Z / Z–A sort                                                 |
-|            | text on `name`                                               | search box                                                     |
-| `doctors`  | `{ email: 1 }` unique                                        | no duplicate doctors                                           |
-|            | `{ createdAt: -1 }`, `{ name: 1 }`                           | default list, A–Z / Z–A sort                                   |
-|            | `{ specialization: 1, createdAt: -1 }`                       | filter, specializations chart                                  |
-|            | `{ hospital: 1, createdAt: -1 }`                             | hospital filter                                                |
-|            | `{ specialization: 1, name: 1 }`, `{ hospital: 1, name: 1 }` | public directory filters, sorted A–Z without an in-memory sort |
-|            | text on `name`, `hospital`                                   | search box                                                     |
+| Collection      | Index                                                        | Serves                                                         |
+| --------------- | ------------------------------------------------------------ | -------------------------------------------------------------- |
+| `patients`      | `{ doctorId: 1, createdAt: -1 }`                             | a doctor's patients (newest first), per-doctor counts          |
+|                 | `{ doctorId: 1, admittedAt: -1 }`                            | patient list filtered by doctor                                |
+|                 | `{ condition: 1, admittedAt: -1 }`                           | condition filter, conditions chart                             |
+|                 | `{ gender: 1, admittedAt: -1 }`                              | gender filter and its count                                    |
+|                 | `{ admittedAt: -1 }`                                         | default list order, date ranges, timeline, recent patients     |
+|                 | `{ name: 1 }`                                                | A–Z / Z–A sort                                                 |
+|                 | text on `name`                                               | search box                                                     |
+| `prescriptions` | `{ patientId: 1, prescribedAt: -1, _id: -1 }`                | a patient's prescriptions, newest first                        |
+| `doctors`       | `{ email: 1 }` unique                                        | no duplicate doctors                                           |
+|                 | `{ createdAt: -1 }`, `{ name: 1 }`                           | default list, A–Z / Z–A sort                                   |
+|                 | `{ specialization: 1, createdAt: -1 }`                       | filter, specializations chart                                  |
+|                 | `{ hospital: 1, createdAt: -1 }`                             | hospital filter                                                |
+|                 | `{ specialization: 1, name: 1 }`, `{ hospital: 1, name: 1 }` | public directory filters, sorted A–Z without an in-memory sort |
+|                 | text on `name`, `hospital`                                   | search box                                                     |
 
 Indexes cost write speed and memory, so there are only as many as there are query shapes. Two sorts are intentionally **not** indexed: sorting _all_ patients by age or by record-created date (shown below as documented trade-offs). They are rare admin actions and each would add a write-amplifying index; `limit` keeps the response small and the in-memory sort is bounded by the collection size. Index them if usage shows they matter.
 
-**Proof: `bun run --cwd server explain`** (30 doctors, 1,500 patients, page size 10). The script exits non-zero if any key query uses a `COLLSCAN`. Result: **`OK: none of the 39 key queries use COLLSCAN.`** Plans read bottom-up (`IXSCAN` first). `PROJECTION_COVERED` means the query was answered from the index alone, with zero documents fetched.
+**Proof: `bun run --cwd server explain`** (30 doctors, 1,500 patients, page size 10). The script exits non-zero if any key query uses a `COLLSCAN`. Result: **`OK: none of the 40 key queries use COLLSCAN.`** Plans read bottom-up (`IXSCAN` first). `PROJECTION_COVERED` means the query was answered from the index alone, with zero documents fetched.
 
 #### Doctors
 
-| Query                              | Plan                                                                    | Index                         | nReturned | docsExamined |  ms |
-| ---------------------------------- | ----------------------------------------------------------------------- | ----------------------------- | --------: | -----------: | --: |
-| doctors: default list              | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | createdAt_-1                  |        10 |           10 |   0 |
-| doctors: sort by name              | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | name_1                        |        10 |           10 |   0 |
-| doctors: specialization            | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | specialization_1_createdAt_-1 |         4 |            4 |   0 |
-| doctors: hospital                  | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | hospital_1_createdAt_-1       |         3 |            3 |   0 |
-| doctors: created date range        | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | createdAt_-1                  |        10 |           10 |   0 |
-| doctors: text search ("Halvorson") | PROJECTION_SIMPLE < SORT < TEXT_MATCH < FETCH < IXSCAN (in-memory sort) | doctor_text_search            |         1 |            1 |   0 |
-| doctors: count (specialization)    | GROUP < COUNT_SCAN                                                      | specialization_1_createdAt_-1 |         1 |            0 |   0 |
+| Query                           | Plan                                                                    | Index                         | nReturned | docsExamined |  ms |
+| ------------------------------- | ----------------------------------------------------------------------- | ----------------------------- | --------: | -----------: | --: |
+| doctors: default list           | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | createdAt_-1                  |        10 |           10 |   0 |
+| doctors: sort by name           | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | name_1                        |        10 |           10 |   0 |
+| doctors: specialization         | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | specialization_1_createdAt_-1 |         5 |            5 |   0 |
+| doctors: hospital               | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | hospital_1_createdAt_-1       |         3 |            3 |   0 |
+| doctors: created date range     | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | createdAt_-1                  |        10 |           10 |   0 |
+| doctors: text search ("test")   | PROJECTION_SIMPLE < SORT < TEXT_MATCH < FETCH < IXSCAN (in-memory sort) | doctor_text_search            |         1 |            1 |   0 |
+| doctors: count (specialization) | GROUP < COUNT_SCAN                                                      | specialization_1_createdAt_-1 |         1 |            0 |   0 |
 
 #### Public directory
 
-| Query                             | Plan                                                                    | Index                   | nReturned | docsExamined |  ms |
-| --------------------------------- | ----------------------------------------------------------------------- | ----------------------- | --------: | -----------: | --: |
-| public: default list (A-Z)        | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | name_1                  |        10 |           10 |   0 |
-| public: specialization            | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | specialization_1_name_1 |         4 |            4 |   0 |
-| public: hospital                  | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | hospital_1_name_1       |         3 |            3 |   0 |
-| public: recently joined           | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | createdAt_-1            |        10 |           10 |   0 |
-| public: text search ("Halvorson") | PROJECTION_SIMPLE < SORT < TEXT_MATCH < FETCH < IXSCAN (in-memory sort) | doctor_text_search      |         1 |            1 |   0 |
+| Query                        | Plan                                                                    | Index                   | nReturned | docsExamined |  ms |
+| ---------------------------- | ----------------------------------------------------------------------- | ----------------------- | --------: | -----------: | --: |
+| public: default list (A-Z)   | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | name_1                  |        10 |           10 |   0 |
+| public: specialization       | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | specialization_1_name_1 |         5 |            5 |   0 |
+| public: hospital             | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | hospital_1_name_1       |         3 |            3 |   0 |
+| public: recently joined      | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN                              | createdAt_-1            |        10 |           10 |   0 |
+| public: text search ("test") | PROJECTION_SIMPLE < SORT < TEXT_MATCH < FETCH < IXSCAN (in-memory sort) | doctor_text_search      |         1 |            1 |   0 |
 
 #### Patients
 
@@ -378,12 +384,12 @@ Indexes cost write speed and memory, so there are only as many as there are quer
 
 | Query                           | Plan                                       | Index                         | nReturned | docsExamined |  ms |
 | ------------------------------- | ------------------------------------------ | ----------------------------- | --------: | -----------: | --: |
-| dashboard: stats (month facets) | PROJECTION_COVERED < IXSCAN                | admittedAt_-1                 |       441 |            0 |   1 |
-| dashboard: timeline 7d          | GROUP < PROJECTION_COVERED < IXSCAN        | admittedAt_-1                 |         7 |            0 |   0 |
+| dashboard: stats (month facets) | PROJECTION_COVERED < IXSCAN                | admittedAt_-1                 |       503 |            0 |   1 |
+| dashboard: timeline 7d          | GROUP < PROJECTION_COVERED < IXSCAN        | admittedAt_-1                 |         7 |            0 |   1 |
 | dashboard: timeline 30d         | GROUP < PROJECTION_COVERED < IXSCAN        | admittedAt_-1                 |        28 |            0 |   1 |
 | dashboard: timeline 12m         | GROUP < PROJECTION_COVERED < IXSCAN        | admittedAt_-1                 |        12 |            0 |   3 |
 | dashboard: patients per doctor  | GROUP < PROJECTION_COVERED < IXSCAN        | doctorId_1_admittedAt_-1      |        30 |            0 |   3 |
-| dashboard: conditions           | GROUP < PROJECTION_COVERED < IXSCAN        | condition_1_admittedAt_-1     |        12 |            0 |   1 |
+| dashboard: conditions           | GROUP < PROJECTION_COVERED < IXSCAN        | condition_1_admittedAt_-1     |        12 |            0 |   2 |
 | dashboard: specializations      | GROUP < PROJECTION_COVERED < IXSCAN        | specialization_1_createdAt_-1 |         8 |            0 |   0 |
 | dashboard: recent patients      | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN | admittedAt_-1                 |        10 |           10 |   0 |
 
@@ -393,12 +399,18 @@ Indexes cost write speed and memory, so there are only as many as there are quer
 | ----------------------------------------- | ------------------------------------------------------------------------- | ------------------------ | --------: | -----------: | --: |
 | hospital: patients list (Square Hospital) | LIMIT < PROJECTION_SIMPLE < FETCH < SORT_MERGE < IXSCAN < IXSCAN < IXSCAN | doctorId_1_admittedAt_-1 |        10 |           10 |   0 |
 | hospital: patients count                  | GROUP < IXSCAN                                                            | doctorId_1_createdAt_-1  |         1 |            0 |   0 |
-| hospital: dashboard stats                 | PROJECTION_COVERED < IXSCAN                                               | doctorId_1_admittedAt_-1 |        37 |            0 |   0 |
+| hospital: dashboard stats                 | PROJECTION_COVERED < IXSCAN                                               | doctorId_1_admittedAt_-1 |        45 |            0 |   1 |
 | hospital: timeline 30d                    | GROUP < PROJECTION_COVERED < IXSCAN                                       | doctorId_1_admittedAt_-1 |        15 |            0 |   1 |
 | hospital: patients per doctor             | GROUP < PROJECTION_COVERED < IXSCAN                                       | doctorId_1_createdAt_-1  |         3 |            0 |   1 |
-| hospital: conditions                      | GROUP < FETCH < IXSCAN                                                    | doctorId_1_createdAt_-1  |        12 |          154 |   1 |
+| hospital: conditions                      | GROUP < FETCH < IXSCAN                                                    | doctorId_1_createdAt_-1  |        12 |          146 |   1 |
 | hospital: specializations                 | GROUP < FETCH < IXSCAN                                                    | hospital_1_createdAt_-1  |         3 |            3 |   0 |
 | hospital: recent patients                 | LIMIT < PROJECTION_SIMPLE < FETCH < SORT_MERGE < IXSCAN < IXSCAN < IXSCAN | doctorId_1_admittedAt_-1 |        10 |           10 |   0 |
+
+#### Prescriptions
+
+| Query                                          | Plan                                       | Index                              | nReturned | docsExamined |  ms |
+| ---------------------------------------------- | ------------------------------------------ | ---------------------------------- | --------: | -----------: | --: |
+| prescriptions: a patient's list (newest first) | LIMIT < PROJECTION_SIMPLE < FETCH < IXSCAN | patientId_1_prescribedAt_-1__id_-1 |         1 |            1 |   0 |
 
 #### Documented trade-offs (intentionally not indexed)
 
@@ -416,6 +428,7 @@ Indexes cost write speed and memory, so there are only as many as there are quer
 | Session storage            | httpOnly cookies, not `localStorage`                                                                                                                                                                 | tokens are unreachable from XSS; the browser attaches them automatically                                                                                                                  |
 | Access + refresh tokens    | 15 min / 7 d, refresh **rotated**, hash stored                                                                                                                                                       | short blast radius for a stolen access token; reuse of a rotated refresh token is rejected                                                                                                |
 | Phone numbers              | a country-aware phone field (`react-phone-number-input`), validated with `libphonenumber-js` on **both** the client and the API using the same metadata, and stored in E.164 (`+8801711123456`)      | a number is accepted only if it is a real number for its country, one canonical stored format, formatted for display; the field's code and flags load lazily when a form opens            |
+| Prescriptions              | their own collection that references the patient and the prescribing doctor, listed newest first through the index `{ patientId, prescribedAt, _id }`; deleting a patient deletes theirs             | a patient can accumulate many prescriptions over time, so they are not embedded in the patient document; the list is one bounded, fully index-ordered query                               |
 | Hospital switcher          | the hospital is chosen in the sidebar, saved in `localStorage` and sent as a `hospital` query param; the API resolves it to that hospital's doctor ids and matches patients with `doctorId: { $in }` | hospital lives on the doctor, so this avoids a `$lookup` per query and stays on the `doctorId_1_*` indexes (see the "Hospital switcher" explain table)                                    |
 | Public directory           | separate `/api/public/*` router with its own projection (no phone/email, no patient counts), `Cache-Control: public, max-age=60`, its own rate limit                                                 | the admin routes stay admin-only and unchanged; a public response can never leak a field the projection omits                                                                             |
 | Role check                 | `authorize('admin')` on every data router                                                                                                                                                            | the data routes are admin-only today, but the guard is already in place for more roles                                                                                                    |

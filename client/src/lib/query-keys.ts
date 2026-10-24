@@ -35,6 +35,11 @@ export const patientKeys = {
   detail: (id: string) => [...patientKeys.all, 'detail', id] as const,
 };
 
+export const prescriptionKeys = {
+  all: ['prescriptions'] as const,
+  list: (patientId: string) => [...prescriptionKeys.all, 'list', patientId] as const,
+};
+
 export const dashboardKeys = {
   all: ['dashboard'] as const,
   stats: (hospital: string | undefined) => [...dashboardKeys.all, 'stats', hospital] as const,
