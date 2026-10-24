@@ -91,6 +91,12 @@ Check it: `curl https://<api-url>/api/health` → `{"success":true,"data":{"stat
   share one IP (the per-IP limit triggers too easily), raise it to `2`. The per-account login
   limit protects regardless of this setting.
 - API responses are sent `Cache-Control: no-store` and gzip-compressed.
+- **Free-tier sleep (keep-alive).** In production the API calls its own `/api/health` every 12
+  minutes so Render's free tier (which sleeps after ~15 idle minutes) stays awake. On Render it
+  works with no setup (it reads `RENDER_EXTERNAL_URL`); elsewhere set `KEEP_ALIVE_URL` to the
+  API's public URL. It only runs while the process is up, so after a deploy or restart the
+  first real request wakes it. For extra safety add a free external pinger (UptimeRobot,
+  cron-job.org) hitting `/api/health` every 5-10 minutes.
 
 ---
 

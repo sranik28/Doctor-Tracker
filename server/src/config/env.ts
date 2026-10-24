@@ -30,6 +30,10 @@ const envSchema = z
       (value) => (value === '' ? undefined : value),
       z.coerce.number().int().min(0).default(1),
     ),
+    // Public URL of this API, pinged every 12 minutes so a free-tier host doesn't put it to
+    // sleep (production only). Falls back to RENDER_EXTERNAL_URL, which Render sets itself.
+    KEEP_ALIVE_URL: optionalString(z.url()),
+    RENDER_EXTERNAL_URL: optionalString(z.url()),
     // Only needed by `bun run seed`; the API server runs without them.
     SEED_ADMIN_EMAIL: optionalString(z.email()),
     SEED_ADMIN_PASSWORD: optionalString(z.string().min(8, 'must be at least 8 characters')),
