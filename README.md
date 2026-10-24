@@ -448,37 +448,53 @@ Indexes cost write speed and memory, so there are only as many as there are quer
 
 ## Visual Evidence
 
-Screenshots live in [`docs/screenshots`](docs/screenshots). They are placeholders until the images are added with exactly these filenames.
+Captured from the production build, signed in as the seeded admin with the demo data (`bun run --cwd server seed:demo`). Files live in [`docs/screenshots`](docs/screenshots).
 
 ### Desktop
 
-| Login                                                  | Dashboard                                                      |
-| ------------------------------------------------------ | -------------------------------------------------------------- |
-| ![Login (desktop)](docs/screenshots/login-desktop.png) | ![Dashboard (desktop)](docs/screenshots/dashboard-desktop.png) |
+**Login**
 
-| Doctors                                                    | Doctor detail                                                          |
-| ---------------------------------------------------------- | ---------------------------------------------------------------------- |
-| ![Doctors (desktop)](docs/screenshots/doctors-desktop.png) | ![Doctor detail (desktop)](docs/screenshots/doctor-detail-desktop.png) |
+![Login (desktop)](docs/screenshots/login-desktop.png)
 
-| Patients                                                     |
-| ------------------------------------------------------------ |
-| ![Patients (desktop)](docs/screenshots/patients-desktop.png) |
+**Dashboard**
 
-### Public site
+![Dashboard (desktop)](docs/screenshots/dashboard-desktop.png)
 
-| Landing (desktop)                                       | Find a doctor (desktop)                                               |
+**Doctors**
+
+![Doctors (desktop)](docs/screenshots/doctors-desktop.png)
+
+**Doctor detail**
+
+![Doctor detail (desktop)](docs/screenshots/doctor-detail-desktop.png)
+
+**Patients**
+
+![Patients (desktop)](docs/screenshots/patients-desktop.png)
+
+**Patient profile** (notes and prescriptions)
+
+![Patient profile (desktop)](docs/screenshots/patient-profile-desktop.png)
+
+**Public site**
+
+| Landing                                                 | Find a doctor                                                         |
 | ------------------------------------------------------- | --------------------------------------------------------------------- |
 | ![Landing (desktop)](docs/screenshots/home-desktop.png) | ![Find a doctor (desktop)](docs/screenshots/find-doctors-desktop.png) |
 
-| Landing (mobile)                                      | Find a doctor (mobile)                                              |
-| ----------------------------------------------------- | ------------------------------------------------------------------- |
-| ![Landing (mobile)](docs/screenshots/home-mobile.png) | ![Find a doctor (mobile)](docs/screenshots/find-doctors-mobile.png) |
-
 ### Mobile
 
-| Login                                                | Dashboard                                                    | Doctors                                                  | Doctor detail                                                        | Patients                                                   |
-| ---------------------------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------- |
-| ![Login (mobile)](docs/screenshots/login-mobile.png) | ![Dashboard (mobile)](docs/screenshots/dashboard-mobile.png) | ![Doctors (mobile)](docs/screenshots/doctors-mobile.png) | ![Doctor detail (mobile)](docs/screenshots/doctor-detail-mobile.png) | ![Patients (mobile)](docs/screenshots/patients-mobile.png) |
+| Login                                                | Dashboard                                                    | Doctors                                                  |
+| ---------------------------------------------------- | ------------------------------------------------------------ | -------------------------------------------------------- |
+| ![Login (mobile)](docs/screenshots/login-mobile.png) | ![Dashboard (mobile)](docs/screenshots/dashboard-mobile.png) | ![Doctors (mobile)](docs/screenshots/doctors-mobile.png) |
+
+| Doctor detail                                                        | Patients                                                   | Patient profile                                                          |
+| -------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------ |
+| ![Doctor detail (mobile)](docs/screenshots/doctor-detail-mobile.png) | ![Patients (mobile)](docs/screenshots/patients-mobile.png) | ![Patient profile (mobile)](docs/screenshots/patient-profile-mobile.png) |
+
+| Landing                                               | Find a doctor                                                       |
+| ----------------------------------------------------- | ------------------------------------------------------------------- |
+| ![Landing (mobile)](docs/screenshots/home-mobile.png) | ![Find a doctor (mobile)](docs/screenshots/find-doctors-mobile.png) |
 
 ---
 
