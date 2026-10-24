@@ -502,11 +502,15 @@ Captured from the production build, signed in as the seeded admin with the demo 
 
 |                 |                                                       |
 | --------------- | ----------------------------------------------------- |
-| Live app        | _add the Vercel URL after deploying_                  |
-| Live API health | _add `https://<api-host>/api/health` after deploying_ |
+| Live app        | <https://doctor-tracker-nu.vercel.app>                |
+| Public site     | <https://doctor-tracker-nu.vercel.app/find-doctors>   |
+| Admin login     | <https://doctor-tracker-nu.vercel.app/login>          |
+| Live API health | <https://doctor-tracker-cm23.onrender.com/api/health> |
 | Repository      | <https://github.com/sranik28/Doctor-Tracker>          |
 
-**Demo credentials**: `admin@doctortracker.dev` / `change-me-strong-password` (use whatever `SEED_ADMIN_*` you seeded the live database with).
+**Demo credentials** (admin panel): email `admin@gmail.com`, password `admin123`.
+
+> Hosting: the client is on Vercel, the API on Render (free tier), the database on MongoDB Atlas. The API pings its own `/api/health` every 12 minutes to avoid the free-tier sleep, so the first request after a deploy or restart can take up to a minute.
 
 ## Future Improvements
 
